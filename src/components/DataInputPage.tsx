@@ -1,4 +1,5 @@
 import { FC, useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 // 型定義を直接ここに定義（App.tsx と同じ）
 export type Page = 'dataInput' | 'employee' | 'leave' | 'rules' | 'aiGeneration' | 'shiftDisplay'
@@ -11,6 +12,10 @@ interface DataInputPageProps {
 const DataInputPage: FC<DataInputPageProps> = ({ onNavigate, onStartGeneration }) => {
   const [targetMonth, setTargetMonth] = useState<string>('')
   const [specialRequests, setSpecialRequests] = useState<string>('')
+  
+  // 権限情報を取得
+  const { hasPermission } = useAuth()
+  const canEdit = hasPermission('edit')
 
   const managementCards = [
     {
@@ -50,6 +55,12 @@ const DataInputPage: FC<DataInputPageProps> = ({ onNavigate, onStartGeneration }
   }
 
   const handleAIGeneration = () => {
+    // 権限チェック
+    if (!canEdit) {
+      alert('シフト生成の権限がありません（管理者のみ実行可能）')
+      return
+    }
+
     if (!targetMonth) {
       alert('対象月を選択してください')
       return
@@ -62,6 +73,18 @@ const DataInputPage: FC<DataInputPageProps> = ({ onNavigate, onStartGeneration }
       <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center">
         📋 シフト生成設定
       </h2>
+      
+      {/* 権限不足時の警告 */}
+      {!canEdit && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6">
+          <div className="flex items-center">
+            <span className="text-lg mr-2">⚠️</span>
+            <span className="font-medium">
+              スタッフ権限のため、一部機能が制限されています。シフト生成は管理者のみ実行可能です。
+            </span>
+          </div>
+        </div>
+      )}
       
       {/* 管理カードグリッド */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -121,12 +144,16 @@ const DataInputPage: FC<DataInputPageProps> = ({ onNavigate, onStartGeneration }
             <select
               value={targetMonth}
               onChange={(e) => setTargetMonth(e.target.value)}
-              className="
-                w-full px-4 py-3 rounded-xl border-2 border-gray-200
-                focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200
+              disabled={!canEdit}
+              className={`
+                w-full px-4 py-3 rounded-xl border-2 
                 transition-all duration-300 text-gray-700
                 bg-white shadow-sm
-              "
+                ${canEdit 
+                  ? 'border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200' 
+                  : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                }
+              `}
             >
               <option value="">選択してください</option>
               <option value="2025-07">2025年7月</option>
@@ -146,14 +173,18 @@ const DataInputPage: FC<DataInputPageProps> = ({ onNavigate, onStartGeneration }
             <textarea
               value={specialRequests}
               onChange={(e) => setSpecialRequests(e.target.value)}
-              placeholder="特別な配慮が必要な事項があれば入力してください（例：新人の研修、ベテランの指導など）"
+              disabled={!canEdit}
+              placeholder={canEdit ? "特別な配慮が必要な事項があれば入力してください（例：新人の研修、ベテランの指導など）" : "閲覧のみの権限です"}
               rows={4}
-              className="
-                w-full px-4 py-3 rounded-xl border-2 border-gray-200
-                focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200
+              className={`
+                w-full px-4 py-3 rounded-xl border-2 
                 transition-all duration-300 text-gray-700
-                bg-white shadow-sm resize-none
-              "
+                shadow-sm resize-none
+                ${canEdit 
+                  ? 'border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white' 
+                  : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                }
+              `}
             />
           </div>
 
@@ -161,18 +192,27 @@ const DataInputPage: FC<DataInputPageProps> = ({ onNavigate, onStartGeneration }
           <div className="text-center pt-4">
             <button
               onClick={handleAIGeneration}
-              className="
+              disabled={!canEdit}
+              className={`
                 inline-flex items-center px-8 py-4 text-lg font-bold
-                bg-gradient-to-r from-indigo-500 to-purple-600
-                hover:from-indigo-600 hover:to-purple-700
-                text-white rounded-xl shadow-lg hover:shadow-xl
-                transform hover:scale-105 transition-all duration-300
+                rounded-xl shadow-lg 
+                transform transition-all duration-300
                 focus:ring-4 focus:ring-indigo-200
-              "
+                ${canEdit 
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white hover:shadow-xl hover:scale-105 cursor-pointer'
+                  : 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50'
+                }
+              `}
             >
-              <span className="mr-2">🚀</span>
-              AIシフト生成開始
+              <span className="mr-2">{canEdit ? '🚀' : '🔒'}</span>
+              {canEdit ? 'AIシフト生成開始' : 'シフト生成（権限不足）'}
             </button>
+            
+            {!canEdit && (
+              <p className="text-sm text-gray-500 mt-2">
+                ※ 管理者権限が必要です
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { FC, useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 // 型定義
 interface ShiftAssignment {
@@ -29,6 +30,10 @@ const ShiftCalendar: FC = () => {
   const [shiftTypeModalOpen, setShiftTypeModalOpen] = useState(false)
   const [pendingDrop, setPendingDrop] = useState<{ date: string, staffName: string } | null>(null)
   
+  // 権限情報を取得（追加）
+  const { hasPermission } = useAuth()
+  const canEdit = hasPermission('edit')
+  
   // 6人体制のスタッフリスト
   const staffList = [
     { id: 'N001', name: '看護師A', type: '常勤', shifts: ['早番', '遅番'] },
@@ -52,11 +57,18 @@ const ShiftCalendar: FC = () => {
       { date: '2025-08-03', staffId: 'N001', staffName: '看護師A', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
       { date: '2025-08-03', staffId: 'N002', staffName: '看護師B', shiftType: '遅番', startTime: '09:30', endTime: '18:30' },
       { date: '2025-08-03', staffId: 'P003', staffName: 'パートC', shiftType: 'パート①', startTime: '09:30', endTime: '14:00' },
-      { date: '2025-08-03', staffId: 'P002', staffName: 'パートB', shiftType: 'パート②', startTime: '13:00', endTime: '18:30' },
-      { date: '2025-08-05', staffId: 'N002', staffName: '看護師B', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
-      { date: '2025-08-05', staffId: 'N003', staffName: '看護師C', shiftType: 'パート②', startTime: '13:00', endTime: '18:30' },
-      { date: '2025-08-06', staffId: 'P001', staffName: 'パートA', shiftType: '遅番', startTime: '09:30', endTime: '18:30' },
-      { date: '2025-08-06', staffId: 'P002', staffName: 'パートB', shiftType: 'パート①', startTime: '08:30', endTime: '13:00' },
+      { date: '2025-08-03', staffId: 'P002', staffName: 'パートB', shiftType: 'パート②', startTime: '14:00', endTime: '18:30' },
+      // 5日
+      { date: '2025-08-05', staffId: 'N001', staffName: '看護師A', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
+      { date: '2025-08-05', staffId: 'N003', staffName: '看護師C', shiftType: '遅番', startTime: '09:30', endTime: '18:30' },
+      { date: '2025-08-05', staffId: 'P001', staffName: 'パートA', shiftType: 'パート①', startTime: '08:30', endTime: '13:00' },
+      { date: '2025-08-05', staffId: 'P002', staffName: 'パートB', shiftType: 'パート②', startTime: '13:00', endTime: '18:30' },
+      // 6日
+      { date: '2025-08-06', staffId: 'N002', staffName: '看護師B', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
+      { date: '2025-08-06', staffId: 'N003', staffName: '看護師C', shiftType: '遅番', startTime: '09:30', endTime: '18:30' },
+      { date: '2025-08-06', staffId: 'P003', staffName: 'パートC', shiftType: 'パート①', startTime: '09:30', endTime: '14:00' },
+      { date: '2025-08-06', staffId: 'P001', staffName: 'パートA', shiftType: 'パート②', startTime: '14:00', endTime: '18:30' },
+      // 7日
       { date: '2025-08-07', staffId: 'N001', staffName: '看護師A', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
       { date: '2025-08-07', staffId: 'P003', staffName: 'パートC', shiftType: '遅番', startTime: '09:30', endTime: '18:30' }
     ],
@@ -165,6 +177,11 @@ const ShiftCalendar: FC = () => {
 
   // ドラッグ&ドロップ関数
   const handleDragStart = (e: React.DragEvent, staffName: string) => {
+    if (!canEdit) {
+      e.preventDefault()
+      alert('シフト編集の権限がありません（管理者のみ実行可能）')
+      return
+    }
     setDraggedStaff(staffName)
     e.dataTransfer.setData('text/plain', staffName)
     e.dataTransfer.effectAllowed = 'copy'
@@ -313,20 +330,20 @@ const ShiftCalendar: FC = () => {
         
         <div className="mt-4 flex justify-center">
           <button
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={() => canEdit ? setIsEditing(!isEditing) : alert('シフト編集の権限がありません（管理者のみ実行可能）')}
             className={`px-6 py-2 rounded-xl font-semibold transition-all duration-200 ${
               isEditing 
                 ? 'bg-yellow-500 text-yellow-900 hover:bg-yellow-400' 
                 : 'bg-white/20 text-white hover:bg-white/30'
             }`}
           >
-            {isEditing ? '✏️ 編集中 - ドラッグ&ドロップで配置' : '📝 編集モード'}
+            {isEditing ? '📝 編集モード' : '📝 編集モード'}
           </button>
         </div>
       </div>
 
       <div className="flex gap-6">
-        {/* 週別カレンダー */}
+        {/* カレンダー部分 */}
         <div className="flex-1">
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
             {/* 曜日ヘッダー */}
@@ -459,7 +476,7 @@ const ShiftCalendar: FC = () => {
           </div>
 
           {/* 従業員リスト（編集モード時）または凡例 */}
-          {isEditing ? (
+          {isEditing && canEdit ? (
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">👥 従業員リスト</h3>
               <p className="text-sm text-gray-600 mb-4">ドラッグしてカレンダーにドロップ</p>
@@ -522,10 +539,12 @@ const ShiftCalendar: FC = () => {
               <h3 className="text-lg font-bold text-gray-800 mb-4">⏰ 総労働時間</h3>
               <div className="space-y-2">
                 {Object.entries(mockShift.statistics.totalHours).map(([staffId, hours]: [string, number]) => {
-                  const staffName = staffId.startsWith('N') ? `看護師${staffId.slice(-1)}` : `パート${staffId.slice(-1)}`
+                  const staffName = staffId.startsWith('N') ? 
+                    staffList.find(s => s.id === staffId)?.name || staffId :
+                    staffList.find(s => s.id === staffId)?.name || staffId
                   return (
-                    <div key={staffId} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">{staffName}</span>
+                    <div key={staffId} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">{staffName}</span>
                       <span className="font-semibold text-gray-800">{hours}h</span>
                     </div>
                   )
@@ -538,55 +557,79 @@ const ShiftCalendar: FC = () => {
 
       {/* シフトタイプ選択モーダル */}
       {shiftTypeModalOpen && pendingDrop && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-96 shadow-2xl">
             <h3 className="text-xl font-bold text-gray-800 mb-4">
-              🎯 シフトタイプ選択
+              シフトタイプを選択
             </h3>
-            <p className="text-gray-600 mb-4">
-              {pendingDrop.date} - {pendingDrop.staffName}
+            <p className="text-gray-600 mb-6">
+              {pendingDrop.staffName}を{pendingDrop.date}に配置
             </p>
             
-            <div className="space-y-3">
-              {staffList.find(s => s.name === pendingDrop.staffName)?.shifts.map((shiftType: string) => (
+            <div className="grid grid-cols-2 gap-3">
+              {['早番', '遅番', 'パート①', 'パート②'].map(shiftType => (
                 <button
                   key={shiftType}
-                  className={`w-full p-3 rounded-xl border-2 text-left transition-all duration-200 ${getShiftColor(shiftType)} hover:scale-105 hover:shadow-md`}
                   onClick={() => handleShiftTypeSelect(shiftType)}
+                  className={`p-4 rounded-xl border-2 hover:shadow-md transition-all duration-200 ${getShiftColor(shiftType)}`}
                 >
                   <div className="font-semibold">{shiftType}</div>
-                  <div className="text-sm opacity-75">
-                    {shiftType === '早番' && '08:30～17:30'}
-                    {shiftType === '遅番' && '09:30～18:30'}
-                    {shiftType === 'パート①' && '08:30～13:00/14:00'}
-                    {shiftType === 'パート②' && '13:00～18:30'}
+                  <div className="text-xs mt-1">
+                    {shiftType === '早番' ? '08:30-17:30' :
+                     shiftType === '遅番' ? '09:30-18:30' :
+                     shiftType === 'パート①' ? '08:30-13:00' : '13:00-18:30'}
                   </div>
                 </button>
               ))}
             </div>
             
-            <div className="flex space-x-2 mt-6">
-              <button
-                className="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors duration-200"
-                onClick={() => {
-                  setShiftTypeModalOpen(false)
-                  setPendingDrop(null)
-                }}
-              >
-                キャンセル
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                setShiftTypeModalOpen(false)
+                setPendingDrop(null)
+              }}
+              className="w-full mt-4 bg-gray-500 text-white py-2 rounded-xl hover:bg-gray-600 transition-colors duration-200"
+            >
+              キャンセル
+            </button>
           </div>
         </div>
       )}
 
       {/* 編集モーダル */}
-      {editModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      {editModalOpen && selectedDate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-96 shadow-2xl">
             <h3 className="text-xl font-bold text-gray-800 mb-4">
-              {selectedDate} - シフト追加
+              シフト編集
             </h3>
+            <p className="text-gray-600 mb-6">
+              {selectedDate}のシフト
+            </p>
+            
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {mockShift.assignments
+                .filter(a => a.date === selectedDate)
+                .map((shift, index) => (
+                  <div key={index} className={`p-3 rounded-lg border ${getShiftColor(shift.shiftType)}`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="font-semibold">{shift.staffName}</div>
+                        <div className="text-sm">{shift.shiftType} ({shift.startTime}-{shift.endTime})</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          handleRemoveShift(selectedDate, shift)
+                          setEditModalOpen(false)
+                        }}
+                        className="text-red-600 hover:text-red-800 p-1"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
             
             <div className="space-y-4">
               <div>

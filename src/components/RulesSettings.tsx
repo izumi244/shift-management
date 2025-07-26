@@ -1,4 +1,5 @@
 import { FC, useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 // 型定義を直接ここに定義
 export type Page = 'dataInput' | 'employee' | 'leave' | 'rules' | 'aiGeneration' | 'shiftDisplay'
@@ -9,6 +10,10 @@ interface RulesSettingsProps {
 
 const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState('basic')
+
+  // 権限情報を取得
+  const { hasPermission } = useAuth()
+  const canEdit = hasPermission('edit')
 
   // 基本ルール設定
   const [basicRules, setBasicRules] = useState({
@@ -66,6 +71,11 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
   })
 
   const handleDayToggle = (day: string) => {
+    if (!canEdit) {
+      alert('制約設定の変更権限がありません（管理者のみ実行可能）')
+      return
+    }
+
     setBasicRules(prev => ({
       ...prev,
       clinicDays: prev.clinicDays.includes(day)
@@ -75,6 +85,11 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
   }
 
   const handleSave = () => {
+    if (!canEdit) {
+      alert('制約設定の保存権限がありません（管理者のみ実行可能）')
+      return
+    }
+
     const allRules = {
       basic: basicRules,
       staffing: staffingRules,
@@ -111,13 +126,30 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
         </button>
       </div>
 
+      {/* 権限不足時の警告 */}
+      {!canEdit && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+          <div className="flex items-center">
+            <span className="text-lg mr-2">⚠️</span>
+            <span className="font-medium">
+              スタッフ権限のため、制約設定の変更・保存はできません（閲覧のみ）
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* 保存ボタン */}
       <div className="flex justify-end">
         <button
           onClick={handleSave}
-          className="bg-green-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+          disabled={!canEdit}
+          className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg transform ${
+            canEdit 
+              ? 'bg-green-500 text-white hover:bg-green-600 hover:shadow-xl hover:-translate-y-1 cursor-pointer'
+              : 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50'
+          }`}
         >
-          💾 設定を保存
+          {canEdit ? '💾 設定を保存' : '🔒 設定を保存（権限不足）'}
         </button>
       </div>
 
@@ -131,138 +163,169 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
                   activeTab === tab.id
-                    ? `bg-gradient-to-r from-${tab.color}-500 to-${tab.color}-600 text-white shadow-lg transform scale-105`
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                    ? `bg-gradient-to-r from-${tab.color}-500 to-${tab.color}-600 text-white shadow-md`
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
                 }`}
               >
-                <span className="text-lg mr-2">{tab.icon}</span>
+                <span className="mr-2">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
           </nav>
         </div>
 
-        {/* タブコンテンツ */}
         <div className="p-6">
           {/* 基本ルール */}
           {activeTab === 'basic' && (
             <div className="space-y-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                📋 診療時間・営業日設定
+                📋 基本ルール設定
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 診療時間設定 */}
                 <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
                   <h4 className="font-semibold text-blue-800 mb-4">診療時間</h4>
                   
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        診療開始時間
+                        開始時間
                       </label>
                       <input
                         type="time"
                         value={basicRules.clinicStartTime}
-                        onChange={(e) => setBasicRules(prev => ({ ...prev, clinicStartTime: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, clinicStartTime: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        診療終了時間
+                        終了時間（平日・土曜）
                       </label>
                       <input
                         type="time"
                         value={basicRules.clinicEndTime}
-                        onChange={(e) => setBasicRules(prev => ({ ...prev, clinicEndTime: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, clinicEndTime: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        水曜日終了時間
+                      </label>
+                      <input
+                        type="time"
+                        value={basicRules.wednesdayEndTime}
+                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, wednesdayEndTime: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        土曜日終了時間
+                      </label>
+                      <input
+                        type="time"
+                        value={basicRules.saturdayEndTime}
+                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, saturdayEndTime: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-orange-50 p-6 rounded-xl border border-orange-200">
-                  <h4 className="font-semibold text-orange-800 mb-4">営業日</h4>
+                {/* 診療曜日設定 */}
+                <div className="bg-green-50 p-6 rounded-xl border border-green-200">
+                  <h4 className="font-semibold text-green-800 mb-4">診療曜日</h4>
                   
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     {['月', '火', '水', '木', '金', '土', '日'].map(day => (
-                      <label key={day} className="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-orange-100">
+                      <label key={day} className="flex items-center">
                         <input
                           type="checkbox"
                           checked={basicRules.clinicDays.includes(day)}
                           onChange={() => handleDayToggle(day)}
-                          className="w-4 h-4 text-orange-600"
+                          disabled={!canEdit}
+                          className={`mr-3 h-5 w-5 rounded focus:ring-green-500 ${
+                            canEdit 
+                              ? 'text-green-600 cursor-pointer' 
+                              : 'text-gray-400 cursor-not-allowed'
+                          }`}
                         />
-                        <span className="text-sm font-medium">{day}曜日</span>
+                        <span className={`${canEdit ? 'text-gray-700' : 'text-gray-500'}`}>
+                          {day}曜日
+                        </span>
                       </label>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-purple-50 p-6 rounded-xl border border-purple-200">
-                  <h4 className="font-semibold text-purple-800 mb-4">水曜日設定</h4>
+                {/* 常勤勤務ルール */}
+                <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
+                  <h4 className="font-semibold text-yellow-800 mb-4">常勤勤務ルール</h4>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      水曜日終了時間
-                    </label>
-                    <input
-                      type="time"
-                      value={basicRules.wednesdayEndTime}
-                      onChange={(e) => setBasicRules(prev => ({ ...prev, wednesdayEndTime: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    />
-                  </div>
-                </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        週勤務日数（常勤）
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="7"
+                        value={basicRules.fullTimeMinDays}
+                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, fullTimeMinDays: parseInt(e.target.value) }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
+                      />
+                    </div>
 
-                <div className="bg-green-50 p-6 rounded-xl border border-green-200">
-                  <h4 className="font-semibold text-green-800 mb-4">土曜日設定</h4>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      土曜日終了時間
-                    </label>
-                    <input
-                      type="time"
-                      value={basicRules.saturdayEndTime}
-                      onChange={(e) => setBasicRules(prev => ({ ...prev, saturdayEndTime: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
-                <h4 className="font-semibold text-yellow-800 mb-4">👩‍⚕️ 常勤スタッフルール</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      週勤務日数（常勤）
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="7"
-                      value={basicRules.fullTimeMinDays}
-                      onChange={(e) => setBasicRules(prev => ({ ...prev, fullTimeMinDays: parseInt(e.target.value) }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      最大連続勤務日数（常勤）
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={basicRules.fullTimeMaxDays}
-                      onChange={(e) => setBasicRules(prev => ({ ...prev, fullTimeMaxDays: parseInt(e.target.value) }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        最大連続勤務日数（常勤）
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={basicRules.fullTimeMaxDays}
+                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, fullTimeMaxDays: parseInt(e.target.value) }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -292,11 +355,16 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         min="0"
                         max="10"
                         value={staffingRules.weekday.morning}
-                        onChange={(e) => setStaffingRules(prev => ({
+                        onChange={(e) => canEdit && setStaffingRules(prev => ({
                           ...prev,
                           weekday: { ...prev.weekday, morning: parseInt(e.target.value) }
                         }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center font-semibold"
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">人</p>
                     </div>
@@ -310,11 +378,16 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         min="0"
                         max="10"
                         value={staffingRules.weekday.evening}
-                        onChange={(e) => setStaffingRules(prev => ({
+                        onChange={(e) => canEdit && setStaffingRules(prev => ({
                           ...prev,
                           weekday: { ...prev.weekday, evening: parseInt(e.target.value) }
                         }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-center font-semibold"
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-green-500 focus:border-green-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">人</p>
                     </div>
@@ -328,11 +401,16 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         min="0"
                         max="10"
                         value={staffingRules.weekday.part1}
-                        onChange={(e) => setStaffingRules(prev => ({
+                        onChange={(e) => canEdit && setStaffingRules(prev => ({
                           ...prev,
                           weekday: { ...prev.weekday, part1: parseInt(e.target.value) }
                         }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center font-semibold"
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-orange-500 focus:border-orange-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">人</p>
                     </div>
@@ -346,27 +424,32 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         min="0"
                         max="10"
                         value={staffingRules.weekday.part2}
-                        onChange={(e) => setStaffingRules(prev => ({
+                        onChange={(e) => canEdit && setStaffingRules(prev => ({
                           ...prev,
                           weekday: { ...prev.weekday, part2: parseInt(e.target.value) }
                         }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-center font-semibold"
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-red-500 focus:border-red-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">人</p>
                     </div>
                   </div>
 
-                  <div className="mt-4 p-3 bg-blue-100 rounded-lg">
-                    <p className="text-sm font-medium text-blue-800">
+                  <div className="mt-4 p-3 bg-green-100 rounded-lg">
+                    <p className="text-sm font-medium text-green-800">
                       合計: {staffingRules.weekday.morning + staffingRules.weekday.evening + staffingRules.weekday.part1 + staffingRules.weekday.part2}人
                     </p>
                   </div>
                 </div>
 
                 {/* 水曜日設定 */}
-                <div className="bg-purple-50 p-6 rounded-xl border border-purple-200">
-                  <h4 className="font-semibold text-purple-800 mb-4 text-lg">水曜日設定</h4>
-                  <p className="text-sm text-gray-600 mb-4">水曜日の人員配置</p>
+                <div className="bg-green-50 p-6 rounded-xl border border-green-200">
+                  <h4 className="font-semibold text-green-800 mb-4 text-lg">水曜日設定</h4>
+                  <p className="text-sm text-gray-600 mb-4">午後診療なし</p>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
@@ -378,11 +461,16 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         min="0"
                         max="10"
                         value={staffingRules.wednesday.morning}
-                        onChange={(e) => setStaffingRules(prev => ({
+                        onChange={(e) => canEdit && setStaffingRules(prev => ({
                           ...prev,
                           wednesday: { ...prev.wednesday, morning: parseInt(e.target.value) }
                         }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center font-semibold"
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">人</p>
                     </div>
@@ -393,16 +481,11 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       </label>
                       <input
                         type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.wednesday.evening}
-                        onChange={(e) => setStaffingRules(prev => ({
-                          ...prev,
-                          wednesday: { ...prev.wednesday, evening: parseInt(e.target.value) }
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-center font-semibold"
+                        value={0}
+                        disabled
+                        className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-center font-semibold cursor-not-allowed"
                       />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
+                      <p className="text-xs text-gray-500 mt-1">人（午後なし）</p>
                     </div>
 
                     <div>
@@ -414,11 +497,16 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         min="0"
                         max="10"
                         value={staffingRules.wednesday.part1}
-                        onChange={(e) => setStaffingRules(prev => ({
+                        onChange={(e) => canEdit && setStaffingRules(prev => ({
                           ...prev,
                           wednesday: { ...prev.wednesday, part1: parseInt(e.target.value) }
                         }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center font-semibold"
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-orange-500 focus:border-orange-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">人</p>
                     </div>
@@ -429,30 +517,25 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       </label>
                       <input
                         type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.wednesday.part2}
-                        onChange={(e) => setStaffingRules(prev => ({
-                          ...prev,
-                          wednesday: { ...prev.wednesday, part2: parseInt(e.target.value) }
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-center font-semibold"
+                        value={0}
+                        disabled
+                        className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-center font-semibold cursor-not-allowed"
                       />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
+                      <p className="text-xs text-gray-500 mt-1">人（午後なし）</p>
                     </div>
                   </div>
 
-                  <div className="mt-4 p-3 bg-purple-100 rounded-lg">
-                    <p className="text-sm font-medium text-purple-800">
+                  <div className="mt-4 p-3 bg-green-100 rounded-lg">
+                    <p className="text-sm font-medium text-green-800">
                       合計: {staffingRules.wednesday.morning + staffingRules.wednesday.evening + staffingRules.wednesday.part1 + staffingRules.wednesday.part2}人
                     </p>
                   </div>
                 </div>
 
                 {/* 土曜日設定 */}
-                <div className="bg-green-50 p-6 rounded-xl border border-green-200">
-                  <h4 className="font-semibold text-green-800 mb-4 text-lg">土曜日設定</h4>
-                  <p className="text-sm text-gray-600 mb-4">週末診療</p>
+                <div className="bg-purple-50 p-6 rounded-xl border border-purple-200">
+                  <h4 className="font-semibold text-purple-800 mb-4 text-lg">土曜日設定</h4>
+                  <p className="text-sm text-gray-600 mb-4">理想的な人員配置</p>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
@@ -464,11 +547,16 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         min="0"
                         max="10"
                         value={staffingRules.saturday.morning}
-                        onChange={(e) => setStaffingRules(prev => ({
+                        onChange={(e) => canEdit && setStaffingRules(prev => ({
                           ...prev,
                           saturday: { ...prev.saturday, morning: parseInt(e.target.value) }
                         }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center font-semibold"
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">人</p>
                     </div>
@@ -482,11 +570,16 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         min="0"
                         max="10"
                         value={staffingRules.saturday.evening}
-                        onChange={(e) => setStaffingRules(prev => ({
+                        onChange={(e) => canEdit && setStaffingRules(prev => ({
                           ...prev,
                           saturday: { ...prev.saturday, evening: parseInt(e.target.value) }
                         }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-center font-semibold"
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-green-500 focus:border-green-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">人</p>
                     </div>
@@ -500,11 +593,16 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         min="0"
                         max="10"
                         value={staffingRules.saturday.part1}
-                        onChange={(e) => setStaffingRules(prev => ({
+                        onChange={(e) => canEdit && setStaffingRules(prev => ({
                           ...prev,
                           saturday: { ...prev.saturday, part1: parseInt(e.target.value) }
                         }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-center font-semibold"
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-orange-500 focus:border-orange-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">人</p>
                     </div>
@@ -518,11 +616,16 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         min="0"
                         max="10"
                         value={staffingRules.saturday.part2}
-                        onChange={(e) => setStaffingRules(prev => ({
+                        onChange={(e) => canEdit && setStaffingRules(prev => ({
                           ...prev,
                           saturday: { ...prev.saturday, part2: parseInt(e.target.value) }
                         }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-center font-semibold"
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-red-500 focus:border-red-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">人</p>
                     </div>
@@ -558,8 +661,13 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       <input
                         type="time"
                         value={shiftRules.morningStart}
-                        onChange={(e) => setShiftRules(prev => ({ ...prev, morningStart: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) => canEdit && setShiftRules(prev => ({ ...prev, morningStart: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                     </div>
 
@@ -570,8 +678,13 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       <input
                         type="time"
                         value={shiftRules.morningEnd}
-                        onChange={(e) => setShiftRules(prev => ({ ...prev, morningEnd: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) => canEdit && setShiftRules(prev => ({ ...prev, morningEnd: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                     </div>
                   </div>
@@ -589,8 +702,13 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       <input
                         type="time"
                         value={shiftRules.eveningStart}
-                        onChange={(e) => setShiftRules(prev => ({ ...prev, eveningStart: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        onChange={(e) => canEdit && setShiftRules(prev => ({ ...prev, eveningStart: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-green-500 focus:border-green-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                     </div>
 
@@ -601,8 +719,13 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       <input
                         type="time"
                         value={shiftRules.eveningEnd}
-                        onChange={(e) => setShiftRules(prev => ({ ...prev, eveningEnd: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        onChange={(e) => canEdit && setShiftRules(prev => ({ ...prev, eveningEnd: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-green-500 focus:border-green-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                     </div>
                   </div>
@@ -620,8 +743,13 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       <input
                         type="time"
                         value={shiftRules.part1Start}
-                        onChange={(e) => setShiftRules(prev => ({ ...prev, part1Start: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                        onChange={(e) => canEdit && setShiftRules(prev => ({ ...prev, part1Start: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-orange-500 focus:border-orange-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                     </div>
 
@@ -637,10 +765,17 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                               name="part1End"
                               value={time}
                               checked={shiftRules.part1DefaultEnd === time}
-                              onChange={(e) => setShiftRules(prev => ({ ...prev, part1DefaultEnd: e.target.value }))}
-                              className="w-4 h-4 text-orange-600"
+                              onChange={(e) => canEdit && setShiftRules(prev => ({ ...prev, part1DefaultEnd: e.target.value }))}
+                              disabled={!canEdit}
+                              className={`w-4 h-4 ${
+                                canEdit 
+                                  ? 'text-orange-600 cursor-pointer' 
+                                  : 'text-gray-400 cursor-not-allowed'
+                              }`}
                             />
-                            <span className="text-sm">{time}</span>
+                            <span className={`text-sm ${canEdit ? 'text-gray-700' : 'text-gray-500'}`}>
+                              {time}
+                            </span>
                           </label>
                         ))}
                       </div>
@@ -660,8 +795,13 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       <input
                         type="time"
                         value={shiftRules.part2Start}
-                        onChange={(e) => setShiftRules(prev => ({ ...prev, part2Start: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        onChange={(e) => canEdit && setShiftRules(prev => ({ ...prev, part2Start: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-red-500 focus:border-red-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                     </div>
 
@@ -672,8 +812,13 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       <input
                         type="time"
                         value={shiftRules.part2End}
-                        onChange={(e) => setShiftRules(prev => ({ ...prev, part2End: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        onChange={(e) => canEdit && setShiftRules(prev => ({ ...prev, part2End: e.target.value }))}
+                        disabled={!canEdit}
+                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                          canEdit 
+                            ? 'border-gray-300 focus:ring-red-500 focus:border-red-500 bg-white' 
+                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                        }`}
                       />
                     </div>
                   </div>
@@ -702,8 +847,13 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       min="1"
                       max="10"
                       value={constraintRules.maxConsecutiveDays}
-                      onChange={(e) => setConstraintRules(prev => ({ ...prev, maxConsecutiveDays: parseInt(e.target.value) }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      onChange={(e) => canEdit && setConstraintRules(prev => ({ ...prev, maxConsecutiveDays: parseInt(e.target.value) }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-red-500 focus:border-red-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
                     />
                   </div>
                 </div>
@@ -716,20 +866,34 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                       <input
                         type="checkbox"
                         checked={constraintRules.fairRotation}
-                        onChange={(e) => setConstraintRules(prev => ({ ...prev, fairRotation: e.target.checked }))}
-                        className="w-5 h-5 text-green-600"
+                        onChange={(e) => canEdit && setConstraintRules(prev => ({ ...prev, fairRotation: e.target.checked }))}
+                        disabled={!canEdit}
+                        className={`w-5 h-5 rounded focus:ring-green-500 ${
+                          canEdit 
+                            ? 'text-green-600 cursor-pointer' 
+                            : 'text-gray-400 cursor-not-allowed'
+                        }`}
                       />
-                      <span className="text-sm font-medium">公平なローテーション</span>
+                      <span className={`text-sm font-medium ${canEdit ? 'text-gray-700' : 'text-gray-500'}`}>
+                        公平なローテーション
+                      </span>
                     </label>
 
                     <label className="flex items-center space-x-3">
                       <input
                         type="checkbox"
                         checked={constraintRules.considerPreferences}
-                        onChange={(e) => setConstraintRules(prev => ({ ...prev, considerPreferences: e.target.checked }))}
-                        className="w-5 h-5 text-green-600"
+                        onChange={(e) => canEdit && setConstraintRules(prev => ({ ...prev, considerPreferences: e.target.checked }))}
+                        disabled={!canEdit}
+                        className={`w-5 h-5 rounded focus:ring-green-500 ${
+                          canEdit 
+                            ? 'text-green-600 cursor-pointer' 
+                            : 'text-gray-400 cursor-not-allowed'
+                        }`}
                       />
-                      <span className="text-sm font-medium">希望休を考慮</span>
+                      <span className={`text-sm font-medium ${canEdit ? 'text-gray-700' : 'text-gray-500'}`}>
+                        希望休を考慮
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -741,10 +905,17 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                     <input
                       type="checkbox"
                       checked={constraintRules.veteranPriority}
-                      onChange={(e) => setConstraintRules(prev => ({ ...prev, veteranPriority: e.target.checked }))}
-                      className="w-5 h-5 text-blue-600"
+                      onChange={(e) => canEdit && setConstraintRules(prev => ({ ...prev, veteranPriority: e.target.checked }))}
+                      disabled={!canEdit}
+                      className={`w-5 h-5 rounded focus:ring-blue-500 ${
+                        canEdit 
+                          ? 'text-blue-600 cursor-pointer' 
+                          : 'text-gray-400 cursor-not-allowed'
+                      }`}
                     />
-                    <span className="text-sm font-medium">ベテラン優先配置</span>
+                    <span className={`text-sm font-medium ${canEdit ? 'text-gray-700' : 'text-gray-500'}`}>
+                      ベテラン優先配置
+                    </span>
                   </label>
                 </div>
 
@@ -755,10 +926,17 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                     <input
                       type="checkbox"
                       checked={constraintRules.avoidSingleStaff}
-                      onChange={(e) => setConstraintRules(prev => ({ ...prev, avoidSingleStaff: e.target.checked }))}
-                      className="w-5 h-5 text-yellow-600"
+                      onChange={(e) => canEdit && setConstraintRules(prev => ({ ...prev, avoidSingleStaff: e.target.checked }))}
+                      disabled={!canEdit}
+                      className={`w-5 h-5 rounded focus:ring-yellow-500 ${
+                        canEdit 
+                          ? 'text-yellow-600 cursor-pointer' 
+                          : 'text-gray-400 cursor-not-allowed'
+                      }`}
                     />
-                    <span className="text-sm font-medium">祝日のない週で全常勤スタッフが水曜日または土曜日のどちらかには出勤必須</span>
+                    <span className={`text-sm font-medium ${canEdit ? 'text-gray-700' : 'text-gray-500'}`}>
+                      祝日のない週で全常勤スタッフが水曜日または土曜日のどちらかには出勤必須
+                    </span>
                   </label>
                 </div>
               </div>

@@ -1,12 +1,13 @@
 import { FC, useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
-// 型定義を直接ここに定義
+// 型定義を直接ここに定義（元のまま）
 export type Page = 'dataInput' | 'employee' | 'leave' | 'rules' | 'aiGeneration' | 'shiftDisplay'
 
 interface Employee {
   id: string
   name: string
-  type: '常勤' | 'パート'
+  type: '常勤' | 'パート'  // 元の型定義に戻す
   hours: number
   shifts: string[]
   availableDays: string[]
@@ -20,7 +21,11 @@ interface EmployeeManagementProps {
 }
 
 const EmployeeManagement: FC<EmployeeManagementProps> = ({ onNavigate }) => {
-  // 6人体制の初期データ
+  // 権限情報を取得（追加）
+  const { hasPermission } = useAuth()
+  const canEdit = hasPermission('edit')
+
+  // 6人体制の初期データ（元のまま）
   const [employees, setEmployees] = useState<Employee[]>([
     {
       id: 'N001',
@@ -112,6 +117,12 @@ const EmployeeManagement: FC<EmployeeManagementProps> = ({ onNavigate }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
+    // 権限チェック（追加）
+    if (!canEdit) {
+      alert('従業員情報の変更権限がありません（管理者のみ実行可能）')
+      return
+    }
+    
     if (!formData.id || !formData.name) {
       alert('従業員IDと氏名は必須です')
       return
@@ -146,12 +157,24 @@ const EmployeeManagement: FC<EmployeeManagementProps> = ({ onNavigate }) => {
   }
 
   const handleEdit = (employee: Employee) => {
+    // 権限チェック（追加）
+    if (!canEdit) {
+      alert('従業員情報の編集権限がありません（管理者のみ実行可能）')
+      return
+    }
+
     setEditingEmployee(employee)
     setFormData(employee)
     setShowForm(true)
   }
 
   const handleDelete = (id: string) => {
+    // 権限チェック（追加）
+    if (!canEdit) {
+      alert('従業員情報の削除権限がありません（管理者のみ実行可能）')
+      return
+    }
+
     if (confirm('この従業員を削除しますか？')) {
       setEmployees(employees.filter(emp => emp.id !== id))
     }
@@ -185,18 +208,35 @@ const EmployeeManagement: FC<EmployeeManagementProps> = ({ onNavigate }) => {
         </button>
       </div>
 
+      {/* 権限不足時の警告（追加） */}
+      {!canEdit && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+          <div className="flex items-center">
+            <span className="text-lg mr-2">⚠️</span>
+            <span className="font-medium">
+              スタッフ権限のため、従業員情報の追加・編集・削除はできません（閲覧のみ）
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* 新規追加ボタン */}
       <div className="flex justify-start">
         <button
-          onClick={() => setShowForm(true)}
-          className="bg-green-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+          onClick={() => canEdit ? setShowForm(true) : alert('従業員追加の権限がありません')}
+          disabled={!canEdit}
+          className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg transform ${
+            canEdit 
+              ? 'bg-green-500 text-white hover:bg-green-600 hover:shadow-xl hover:-translate-y-1 cursor-pointer'
+              : 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50'
+          }`}
         >
-          ➕ 新規従業員追加
+          {canEdit ? '➕ 新規従業員追加' : '🔒 新規従業員追加（権限不足）'}
         </button>
       </div>
 
-      {/* 従業員フォーム */}
-      {showForm && (
+      {/* 従業員フォーム（元のレイアウト） */}
+      {showForm && canEdit && (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-6 rounded-2xl border-2 border-dashed border-blue-300">
           <h3 className="text-xl font-bold text-gray-800 mb-4">
             {editingEmployee ? '従業員情報編集' : '新規従業員追加'}
@@ -238,7 +278,7 @@ const EmployeeManagement: FC<EmployeeManagementProps> = ({ onNavigate }) => {
                 </label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as '常勤' | 'パート' })}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as Employee['type'] })}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="常勤">常勤</option>
@@ -248,7 +288,7 @@ const EmployeeManagement: FC<EmployeeManagementProps> = ({ onNavigate }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  契約時間数（週）
+                  週契約時間 *
                 </label>
                 <input
                   type="number"
@@ -256,7 +296,8 @@ const EmployeeManagement: FC<EmployeeManagementProps> = ({ onNavigate }) => {
                   onChange={(e) => setFormData({ ...formData, hours: parseInt(e.target.value) })}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="1"
-                  max="60"
+                  max="40"
+                  required
                 />
               </div>
 
@@ -270,22 +311,39 @@ const EmployeeManagement: FC<EmployeeManagementProps> = ({ onNavigate }) => {
                   onChange={(e) => setFormData({ ...formData, maxConsecutive: parseInt(e.target.value) })}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   min="1"
-                  max="10"
+                  max="7"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  連絡先
-                </label>
-                <textarea
-                  value={formData.contact || ''}
-                  onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="電話番号とメールアドレス"
-                  rows={2}
-                />
-              </div>
+              {formData.type === 'パート' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    パート①終了時間
+                  </label>
+                  <select
+                    value={formData.part1EndTime || '13:00'}
+                    onChange={(e) => setFormData({ ...formData, part1EndTime: e.target.value as '13:00' | '14:00' })}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="13:00">13:00</option>
+                    <option value="14:00">14:00</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* 連絡先 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                連絡先
+              </label>
+              <textarea
+                value={formData.contact || ''}
+                onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="電話番号とメールアドレス"
+                rows={2}
+              />
             </div>
 
             {/* シフト選択 */}
@@ -328,23 +386,7 @@ const EmployeeManagement: FC<EmployeeManagementProps> = ({ onNavigate }) => {
               </div>
             </div>
 
-            {/* パート①終了時間選択 */}
-            {formData.type === 'パート' && formData.shifts?.includes('パート①') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  パート①終了時間
-                </label>
-                <select
-                  value={formData.part1EndTime || '13:00'}
-                  onChange={(e) => setFormData({ ...formData, part1EndTime: e.target.value as '13:00' | '14:00' })}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="13:00">13:00</option>
-                  <option value="14:00">14:00</option>
-                </select>
-              </div>
-            )}
-
+            {/* ボタン */}
             <div className="flex space-x-4 pt-4">
               <button
                 type="submit"
@@ -423,15 +465,25 @@ const EmployeeManagement: FC<EmployeeManagementProps> = ({ onNavigate }) => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button
                       onClick={() => handleEdit(employee)}
-                      className="text-blue-600 hover:text-blue-900 hover:underline"
+                      disabled={!canEdit}
+                      className={`font-medium transition-colors ${
+                        canEdit 
+                          ? 'text-blue-600 hover:text-blue-900 hover:underline cursor-pointer'
+                          : 'text-gray-400 cursor-not-allowed'
+                      }`}
                     >
-                      編集
+                      {canEdit ? '編集' : '🔒編集'}
                     </button>
                     <button
                       onClick={() => handleDelete(employee.id)}
-                      className="text-red-600 hover:text-red-900 hover:underline"
+                      disabled={!canEdit}
+                      className={`font-medium transition-colors ${
+                        canEdit 
+                          ? 'text-red-600 hover:text-red-900 hover:underline cursor-pointer'
+                          : 'text-gray-400 cursor-not-allowed'
+                      }`}
                     >
-                      削除
+                      {canEdit ? '削除' : '🔒削除'}
                     </button>
                   </td>
                 </tr>
