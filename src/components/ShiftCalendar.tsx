@@ -30,7 +30,7 @@ const ShiftCalendar: FC = () => {
   const [shiftTypeModalOpen, setShiftTypeModalOpen] = useState(false)
   const [pendingDrop, setPendingDrop] = useState<{ date: string, staffName: string } | null>(null)
   
-  // 権限情報を取得（追加）
+  // 権限情報を取得
   const { hasPermission } = useAuth()
   const canEdit = hasPermission('edit')
   
@@ -133,13 +133,12 @@ const ShiftCalendar: FC = () => {
 
   // 文字数に応じた動的フォントサイズ調整
   const getNameFontSize = (name: string): { className: string, style?: React.CSSProperties } => {
-    const length = name.length
-    if (length <= 4) {
-      return { className: 'text-xs' } // 4文字以下: 12px
-    } else if (length <= 6) {
-      return { className: 'text-xs', style: { fontSize: '10px' } } // 5-6文字: 10px
+    if (name.length <= 4) {
+      return { className: 'text-xs' }
+    } else if (name.length <= 6) {
+      return { className: 'text-xs', style: { fontSize: '10px' } }
     } else {
-      return { className: 'text-xs', style: { fontSize: '8px' } } // 7文字以上: 8px
+      return { className: 'text-xs', style: { fontSize: '9px' } }
     }
   }
 
@@ -157,25 +156,25 @@ const ShiftCalendar: FC = () => {
     const [year, month] = currentMonth.split('-').map(Number)
     let newYear = year
     let newMonth = month
-
-    if (direction === 'next') {
-      newMonth += 1
-      if (newMonth > 12) {
-        newMonth = 1
-        newYear += 1
-      }
-    } else {
+    
+    if (direction === 'prev') {
       newMonth -= 1
       if (newMonth < 1) {
         newMonth = 12
         newYear -= 1
       }
+    } else {
+      newMonth += 1
+      if (newMonth > 12) {
+        newMonth = 1
+        newYear += 1
+      }
     }
-
+    
     setCurrentMonth(`${newYear}-${String(newMonth).padStart(2, '0')}`)
   }
 
-  // ドラッグ&ドロップ関数
+  // ドラッグ&ドロップ関連の関数
   const handleDragStart = (e: React.DragEvent, staffName: string) => {
     if (!canEdit) {
       e.preventDefault()
@@ -183,13 +182,12 @@ const ShiftCalendar: FC = () => {
       return
     }
     setDraggedStaff(staffName)
-    e.dataTransfer.setData('text/plain', staffName)
-    e.dataTransfer.effectAllowed = 'copy'
+    e.dataTransfer.effectAllowed = 'move'
   }
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
-    e.dataTransfer.dropEffect = 'copy'
+    e.dataTransfer.dropEffect = 'move'
   }
 
   const handleDragEnter = (e: React.DragEvent, dateStr: string) => {
@@ -204,32 +202,23 @@ const ShiftCalendar: FC = () => {
 
   const handleDrop = (e: React.DragEvent, dateStr: string) => {
     e.preventDefault()
-    const staffName = e.dataTransfer.getData('text/plain')
-    setDraggedStaff(null)
     setDragOverCell(null)
-
-    const existingShifts = mockShift.assignments.filter(a => a.date === dateStr)
-    if (existingShifts.length > 0) {
-      const existingStaffNames = existingShifts.map(s => s.staffName).join(', ')
-      const confirmed = confirm(`${dateStr}には既に${existingStaffNames}のシフトがあります。追加しますか？`)
-      if (!confirmed) return
+    
+    if (draggedStaff) {
+      setPendingDrop({ date: dateStr, staffName: draggedStaff })
+      setShiftTypeModalOpen(true)
+      setDraggedStaff(null)
     }
-
-    setPendingDrop({ date: dateStr, staffName })
-    setShiftTypeModalOpen(true)
   }
 
   const handleShiftTypeSelect = (shiftType: string) => {
     if (!pendingDrop) return
 
-    const staff = staffList.find(s => s.name === pendingDrop.staffName)
-    if (!staff) return
-
     const newAssignment: ShiftAssignment = {
       date: pendingDrop.date,
-      staffId: staff.id,
+      staffId: staffList.find(s => s.name === pendingDrop.staffName)?.id || '',
       staffName: pendingDrop.staffName,
-      shiftType: shiftType,
+      shiftType,
       startTime: shiftType === '早番' ? '08:30' : shiftType === '遅番' ? '09:30' : shiftType === 'パート①' ? '08:30' : '13:00',
       endTime: shiftType === '早番' ? '17:30' : shiftType === '遅番' ? '18:30' : shiftType === 'パート①' ? '13:00' : '18:30'
     }
@@ -342,7 +331,7 @@ const ShiftCalendar: FC = () => {
         </div>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-3">
         {/* カレンダー部分 */}
         <div className="flex-1">
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -459,7 +448,7 @@ const ShiftCalendar: FC = () => {
         </div>
 
         {/* サイドパネル */}
-        <div className="w-80 flex-shrink-0 space-y-6">
+        <div className="w-64 flex-shrink-0 space-y-6">
           {/* 統計情報 */}
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <h3 className="text-lg font-bold text-gray-800 mb-4">📊 シフト統計</h3>
@@ -539,9 +528,7 @@ const ShiftCalendar: FC = () => {
               <h3 className="text-lg font-bold text-gray-800 mb-4">⏰ 総労働時間</h3>
               <div className="space-y-2">
                 {Object.entries(mockShift.statistics.totalHours).map(([staffId, hours]: [string, number]) => {
-                  const staffName = staffId.startsWith('N') ? 
-                    staffList.find(s => s.id === staffId)?.name || staffId :
-                    staffList.find(s => s.id === staffId)?.name || staffId
+                  const staffName = staffList.find(s => s.id === staffId)?.name || staffId
                   return (
                     <div key={staffId} className="flex justify-between items-center">
                       <span className="text-sm text-gray-700">{staffName}</span>

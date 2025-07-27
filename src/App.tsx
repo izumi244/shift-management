@@ -13,32 +13,6 @@ import LeaveManagement from './components/LeaveManagement'
 import RulesSettings from './components/RulesSettings'
 import ShiftCalendar from './components/ShiftCalendar'
 
-// データ収集関数
-const collectDataForAI = (
-  employees: any[],
-  leaveRequests: any[],
-  rulesData: any,
-  targetMonth: string,
-  specialRequests: string
-) => {
-  return {
-    targetMonth,
-    specialRequests,
-    employees: employees || [],
-    leaveRequests: leaveRequests || [],
-    rules: rulesData || {
-      clinicStartTime: "08:30",
-      clinicEndTime: "18:30",
-      clinicDays: ["月", "火", "水", "木", "金", "土"],
-      weekdayStaffing: 4,
-      wednesdayStaffing: 3,
-      saturdayIdealStaffing: 4,
-      maxConsecutiveDays: 5,
-      fairRotation: true
-    }
-  }
-}
-
 // メインアプリケーションコンポーネント（ログイン後の画面）
 const MainApp = () => {
   const [currentPage, setCurrentPage] = useState<Page>('dataInput')
@@ -50,75 +24,42 @@ const MainApp = () => {
   const [employees, setEmployees] = useState([])
   const [leaveRequests, setLeaveRequests] = useState([])
   const [rulesData, setRulesData] = useState({})
-  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false)
 
   // 認証情報を取得
-  const { user, logout, hasPermission } = useAuth()
-  const canEdit = hasPermission('edit')
-
-  // PDF用のモックデータ
-  const currentMonth = '2025-08'
-  
-  interface MockShiftData {
-    date: string
-    staffName: string
-    shiftType: string
-    startTime: string
-    endTime: string
-  }
-  
-  const mockShiftData: MockShiftData[] = [
-    { date: '2025-08-01', staffName: '佐藤さん', shiftType: 'ロング', startTime: '08:30', endTime: '18:00' },
-    { date: '2025-08-01', staffName: '田中さん', shiftType: 'ショート', startTime: '12:00', endTime: '18:30' },
-    { date: '2025-08-02', staffName: '山田さん', shiftType: 'ロング', startTime: '08:30', endTime: '18:00' },
-    { date: '2025-08-02', staffName: '佐藤さん', shiftType: 'ショート', startTime: '12:00', endTime: '18:30' },
-  ]
+  const { user, logout } = useAuth()
 
   const navigateToPage = (page: Page) => {
     setCurrentPage(page)
     
-    const stepMapping: Record<Page, number> = {
-      dataInput: 1,
-      employee: 2,
-      leave: 3,
-      rules: 4,
-      aiGeneration: 5,
-      shiftDisplay: 6
+    const stepMap = {
+      'dataInput': 1,
+      'employee': 2,
+      'leave': 3,
+      'rules': 4,
+      'aiGeneration': 5,
+      'shiftDisplay': 6
     }
     
-    setCurrentStep(stepMapping[page] || 1)
-  }
-
-  const handleAIGeneration = async (targetMonth: string, specialRequests: string) => {
-    setIsLoading(true)
-    navigateToPage('aiGeneration')
-    
-    await new Promise(resolve => setTimeout(resolve, 3000))
-    
-    setIsLoading(false)
-    navigateToPage('shiftDisplay')
+    setCurrentStep(stepMap[page] || 1)
   }
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed)
   }
 
-  const generatePDFWeeks = () => {
-    const weeks: { label: string; startDate: string; endDate: string }[] = []
-    const year = 2025
-    const month = 8
+  const handleAIGeneration = (targetMonth: string, specialRequests: string) => {
+    setIsLoading(true)
+    setCurrentPage('aiGeneration')
+    setCurrentStep(5)
     
-    for (let week = 1; week <= 4; week++) {
-      const startDay = (week - 1) * 7 + 1
-      const endDay = Math.min(week * 7, 31)
-      weeks.push({
-        label: `第${week}週`,
-        startDate: `${year}-${month.toString().padStart(2, '0')}-${startDay.toString().padStart(2, '0')}`,
-        endDate: `${year}-${month.toString().padStart(2, '0')}-${endDay.toString().padStart(2, '0')}`
-      })
-    }
+    console.log('🚀 AIシフト生成開始:', { targetMonth, specialRequests })
     
-    return weeks
+    setTimeout(() => {
+      setIsLoading(false)
+      setCurrentPage('shiftDisplay')
+      setCurrentStep(6)
+      alert('AIシフト生成が完了しました！')
+    }, 3000)
   }
 
   const menuItems = [
@@ -149,6 +90,7 @@ const MainApp = () => {
     {
       id: 'shiftDisplay' as Page,
       icon: '📋',
+      label: '生成されたシフト',
       description: '生成されたシフト'
     }
   ]
@@ -180,9 +122,6 @@ const MainApp = () => {
       action: () => alert('システム設定画面（準備中）')
     }
   ]
-
-  const pdfWeeks = generatePDFWeeks()
-  const today = new Date().toISOString().split('T')[0]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-100 to-blue-200 flex">
@@ -312,82 +251,84 @@ const MainApp = () => {
       </div>
 
       {/* メインコンテンツエリア */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        {/* ヘッダー */}
-        <div className="w-full bg-white rounded-3xl shadow-lg p-6 mx-6 mt-6">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              🏥 シフト作成ツール
-            </h1>
-            <p className="text-gray-600">
-              AI を活用した看護師シフト自動生成システム
-            </p>
-          </div>
-        </div>
-
-        {/* プログレスバー */}
-        <div className="w-full bg-white rounded-3xl shadow-lg p-4 mx-6 mt-4">
-          <div className="w-full mx-auto">
-            <ProgressBar currentStep={currentStep} />
-          </div>
-        </div>
-
-        {/* メインコンテンツ */}
-        <div className="flex-1 p-6">
-          <div className={currentPage === 'shiftDisplay' ? 'w-full mx-auto' : 'max-w-4xl mx-auto'}>
-            <div className="bg-white rounded-3xl shadow-2xl p-8 min-h-[600px]">
-              <div className="animate-fade-in">
-                {currentPage === 'dataInput' && (
-                  <DataInputPage 
-                    onNavigate={navigateToPage}
-                    onStartGeneration={handleAIGeneration}
-                  />
-                )}
-
-                {currentPage === 'employee' && (
-                  <EmployeeManagement 
-                    onNavigate={navigateToPage}
-                  />
-                )}
-
-                {currentPage === 'leave' && (
-                  <LeaveManagement 
-                    onNavigate={navigateToPage}
-                  />
-                )}
-
-                {currentPage === 'rules' && (
-                  <RulesSettings 
-                    onNavigate={navigateToPage}
-                  />
-                )}
-
-                {currentPage === 'aiGeneration' && (
-                  <div className="text-center py-20">
-                    <div className="text-6xl mb-6 animate-bounce">🤖</div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                      AIがシフトを生成中...
-                    </h2>
-                    <p className="text-gray-600 mb-8">
-                      制約条件を考慮して最適なシフトを作成しています
-                    </p>
-                    <div className="w-full max-w-md mx-auto">
-                      <div className="bg-gray-200 rounded-full h-3 overflow-hidden">
-                        <div 
-                          className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full animate-pulse"
-                          style={{ width: '70%' }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {currentPage === 'shiftDisplay' && (
-                  <ShiftCalendar />
-                )}
+      <div className="flex-1 flex flex-col min-h-screen pl-6 pr-0 py-6">
+        <div className="w-full space-y-4">
+          {/* ヘッダー */}
+          {currentPage !== 'shiftDisplay' && (
+            <div className="bg-white rounded-3xl shadow-lg p-6">
+              <div className="text-center">
+                <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                  🏥 シフト作成ツール
+                </h1>
+                <p className="text-gray-600">
+                  AI を活用した看護師シフト自動生成システム
+                </p>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* プログレスバー */}
+          {currentPage !== 'shiftDisplay' && (
+            <div className="bg-white rounded-3xl shadow-lg p-4">
+              <ProgressBar currentStep={currentStep} />
+            </div>
+          )}
+
+          {/* メインコンテンツ */}
+          {currentPage === 'shiftDisplay' ? (
+            <div className="w-full h-full">
+              <ShiftCalendar />
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl shadow-2xl min-h-[600px] p-8 max-w-4xl mx-auto">
+              <div className="animate-fade-in">
+              {currentPage === 'dataInput' && (
+                <DataInputPage 
+                  onNavigate={navigateToPage}
+                  onStartGeneration={handleAIGeneration}
+                />
+              )}
+
+              {currentPage === 'employee' && (
+                <EmployeeManagement 
+                  onNavigate={navigateToPage}
+                />
+              )}
+
+              {currentPage === 'leave' && (
+                <LeaveManagement 
+                  onNavigate={navigateToPage}
+                />
+              )}
+
+              {currentPage === 'rules' && (
+                <RulesSettings 
+                  onNavigate={navigateToPage}
+                />
+              )}
+
+              {currentPage === 'aiGeneration' && (
+                <div className="text-center py-20">
+                  <div className="text-6xl mb-6 animate-bounce">🤖</div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                    AIがシフトを生成中...
+                  </h2>
+                  <p className="text-gray-600 mb-8">
+                    制約条件を考慮して最適なシフトを作成しています
+                  </p>
+                  <div className="w-full max-w-md mx-auto">
+                    <div className="bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full animate-pulse"
+                        style={{ width: '70%' }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
