@@ -34,6 +34,15 @@ const ShiftCalendar: FC = () => {
   const { hasPermission } = useAuth()
   const canEdit = hasPermission('edit')
   
+  // 制約設定（RulesSettingsと連携）
+  // TODO: 実際のRulesSettingsコンポーネントから設定値を取得する
+  const [shiftRules, setShiftRules] = useState({
+    part1DefaultEnd: '12:30', // デフォルト終了時間（制約設定から取得）
+    part1EndOptions: ['12:30', '13:00'], // 終了時間選択肢
+    part2Start: '11:00', // パート②開始時間（制約設定に合わせて修正）
+    part2End: '14:30' // パート②終了時間（制約設定に合わせて修正）
+  })
+  
   // 6人体制のスタッフリスト
   const staffList = [
     { id: 'N001', name: '看護師A', type: '常勤', shifts: ['早番', '遅番'] },
@@ -44,30 +53,30 @@ const ShiftCalendar: FC = () => {
     { id: 'P003', name: 'パートC', type: 'パート', shifts: ['パート①', 'パート②'] }
   ]
 
-  // モックデータ（計算例通りに修正）
+  // モックデータ（修正済み）
   const [mockShift, setMockShift] = useState<GeneratedShift>({
     month: currentMonth,
     assignments: [
       { date: '2025-08-01', staffId: 'N001', staffName: '看護師A', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
       { date: '2025-08-01', staffId: 'N002', staffName: '看護師B', shiftType: '遅番', startTime: '09:30', endTime: '18:30' },
-      { date: '2025-08-01', staffId: 'P001', staffName: 'パートA', shiftType: 'パート①', startTime: '08:30', endTime: '13:00' },
+      { date: '2025-08-01', staffId: 'P001', staffName: 'パートA', shiftType: 'パート①', startTime: '08:30', endTime: '12:30' },
       { date: '2025-08-02', staffId: 'N003', staffName: '看護師C', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
-      { date: '2025-08-02', staffId: 'P002', staffName: 'パートB', shiftType: 'パート②', startTime: '13:00', endTime: '18:30' },
-      // 3日：計算例通りのデータ
+      { date: '2025-08-02', staffId: 'P002', staffName: 'パートB', shiftType: 'パート②', startTime: '11:00', endTime: '14:30' },
+      // 3日：修正済み
       { date: '2025-08-03', staffId: 'N001', staffName: '看護師A', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
       { date: '2025-08-03', staffId: 'N002', staffName: '看護師B', shiftType: '遅番', startTime: '09:30', endTime: '18:30' },
-      { date: '2025-08-03', staffId: 'P003', staffName: 'パートC', shiftType: 'パート①', startTime: '09:30', endTime: '14:00' },
-      { date: '2025-08-03', staffId: 'P002', staffName: 'パートB', shiftType: 'パート②', startTime: '14:00', endTime: '18:30' },
+      { date: '2025-08-03', staffId: 'P003', staffName: 'パートC', shiftType: 'パート①', startTime: '08:30', endTime: '12:30' },
+      { date: '2025-08-03', staffId: 'P002', staffName: 'パートB', shiftType: 'パート②', startTime: '11:00', endTime: '14:30' },
       // 5日
       { date: '2025-08-05', staffId: 'N001', staffName: '看護師A', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
       { date: '2025-08-05', staffId: 'N003', staffName: '看護師C', shiftType: '遅番', startTime: '09:30', endTime: '18:30' },
-      { date: '2025-08-05', staffId: 'P001', staffName: 'パートA', shiftType: 'パート①', startTime: '08:30', endTime: '13:00' },
-      { date: '2025-08-05', staffId: 'P002', staffName: 'パートB', shiftType: 'パート②', startTime: '13:00', endTime: '18:30' },
-      // 6日
+      { date: '2025-08-05', staffId: 'P001', staffName: 'パートA', shiftType: 'パート①', startTime: '08:30', endTime: '12:30' },
+      { date: '2025-08-05', staffId: 'P002', staffName: 'パートB', shiftType: 'パート②', startTime: '11:00', endTime: '14:30' },
+      // 6日：修正済み
       { date: '2025-08-06', staffId: 'N002', staffName: '看護師B', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
       { date: '2025-08-06', staffId: 'N003', staffName: '看護師C', shiftType: '遅番', startTime: '09:30', endTime: '18:30' },
-      { date: '2025-08-06', staffId: 'P003', staffName: 'パートC', shiftType: 'パート①', startTime: '09:30', endTime: '14:00' },
-      { date: '2025-08-06', staffId: 'P001', staffName: 'パートA', shiftType: 'パート②', startTime: '14:00', endTime: '18:30' },
+      { date: '2025-08-06', staffId: 'P003', staffName: 'パートC', shiftType: 'パート①', startTime: '08:30', endTime: '12:30' },
+      { date: '2025-08-06', staffId: 'P001', staffName: 'パートA', shiftType: 'パート②', startTime: '11:00', endTime: '14:30' },
       // 7日
       { date: '2025-08-07', staffId: 'N001', staffName: '看護師A', shiftType: '早番', startTime: '08:30', endTime: '17:30' },
       { date: '2025-08-07', staffId: 'P003', staffName: 'パートC', shiftType: '遅番', startTime: '09:30', endTime: '18:30' }
@@ -105,19 +114,19 @@ const ShiftCalendar: FC = () => {
     return Math.max(0, totalMinutes / 30) // 30分毎の区切り
   }
 
-  // グリッド位置計算（完璧なセル内収納）
+  // グリッド位置計算（文字切れ修正版）
   const calculateGridPosition = (startTime: string, endTime: string) => {
     const startIndex = timeToGridIndex(startTime)
     const endIndex = timeToGridIndex(endTime)
     const duration = endIndex - startIndex
     
-    const cellHeight = 170 // シフト表示エリア170px（セル220px - 日付・パディング50px）
+    const cellHeight = 170 // シフト表示エリア170px
     const totalGrids = 20  // 8:30-18:30 = 10時間 = 20区切り
     const gridHeight = cellHeight / totalGrids // 1区切り = 8.5px
     
     return {
-      top: Math.min(startIndex * gridHeight, cellHeight - 40), // 安全な上限
-      height: Math.min(Math.max(duration * gridHeight, 25), cellHeight - (startIndex * gridHeight) - 15) // セル内確実収納
+      top: Math.min(startIndex * gridHeight, cellHeight - 40), // 上限を少し戻す
+      height: Math.min(Math.max(duration * gridHeight, 35), cellHeight - (startIndex * gridHeight) - 5) // 最小高さ35px、下余白5px
     }
   }
 
@@ -211,6 +220,27 @@ const ShiftCalendar: FC = () => {
     }
   }
 
+  const handleShiftTypeSelectWithTime = (shiftType: string, endTime: string) => {
+    if (!pendingDrop) return
+
+    const newAssignment: ShiftAssignment = {
+      date: pendingDrop.date,
+      staffId: staffList.find(s => s.name === pendingDrop.staffName)?.id || '',
+      staffName: pendingDrop.staffName,
+      shiftType,
+      startTime: '08:30',
+      endTime: endTime
+    }
+    
+    setMockShift(prev => ({
+      ...prev,
+      assignments: [...prev.assignments, newAssignment]
+    }))
+
+    setShiftTypeModalOpen(false)
+    setPendingDrop(null)
+  }
+
   const handleShiftTypeSelect = (shiftType: string) => {
     if (!pendingDrop) return
 
@@ -219,8 +249,8 @@ const ShiftCalendar: FC = () => {
       staffId: staffList.find(s => s.name === pendingDrop.staffName)?.id || '',
       staffName: pendingDrop.staffName,
       shiftType,
-      startTime: shiftType === '早番' ? '08:30' : shiftType === '遅番' ? '09:30' : shiftType === 'パート①' ? '08:30' : '13:00',
-      endTime: shiftType === '早番' ? '17:30' : shiftType === '遅番' ? '18:30' : shiftType === 'パート①' ? '13:00' : '18:30'
+      startTime: shiftType === '早番' ? '08:30' : shiftType === '遅番' ? '09:30' : shiftType === 'パート①' ? '08:30' : shiftRules.part2Start,
+      endTime: shiftType === '早番' ? '17:30' : shiftType === '遅番' ? '18:30' : shiftType === 'パート①' ? shiftRules.part1DefaultEnd : shiftRules.part2End
     }
     
     setMockShift(prev => ({
@@ -317,7 +347,7 @@ const ShiftCalendar: FC = () => {
           </button>
         </div>
         
-        <div className="mt-4 flex justify-center">
+        <div className="mt-4 flex justify-center gap-4">
           <button
             onClick={() => canEdit ? setIsEditing(!isEditing) : alert('シフト編集の権限がありません（管理者のみ実行可能）')}
             className={`px-6 py-2 rounded-xl font-semibold transition-all duration-200 ${
@@ -327,6 +357,13 @@ const ShiftCalendar: FC = () => {
             }`}
           >
             {isEditing ? '📝 編集モード' : '📝 編集モード'}
+          </button>
+          
+          <button
+            onClick={() => alert('PDF出力機能（準備中）')}
+            className="px-6 py-2 rounded-xl font-semibold transition-all duration-200 bg-white/20 text-white hover:bg-white/30"
+          >
+            📄 PDF出力
           </button>
         </div>
       </div>
@@ -425,12 +462,11 @@ const ShiftCalendar: FC = () => {
                                 }}
                                 title={`${shift.startTime}～${shift.endTime} ${shift.staffName} (${isEditing ? 'クリックで削除' : ''})`}
                               >
-                                <div className="text-center text-xs font-medium leading-tight">
+                                <div className="text-center text-[10px] font-medium leading-tight">
                                   {shift.startTime}～{shift.endTime}
                                 </div>
                                 <div 
-                                  className={`text-center font-bold leading-tight mt-1 truncate ${getNameFontSize(shift.staffName).className}`}
-                                  style={getNameFontSize(shift.staffName).style}
+                                  className="text-center font-bold leading-tight mt-1 truncate text-[9px]"
                                 >
                                   {shift.staffName}
                                 </div>
@@ -513,10 +549,10 @@ const ShiftCalendar: FC = () => {
                   遅番 (09:30～18:30)
                 </div>
                 <div className={`p-2 rounded border text-sm ${getShiftColor('パート①')}`}>
-                  パート① (08:30～13:00/14:00)
+                  パート① (08:30～{shiftRules.part1DefaultEnd})
                 </div>
                 <div className={`p-2 rounded border text-sm ${getShiftColor('パート②')}`}>
-                  パート② (13:00～18:30)
+                  パート② ({shiftRules.part2Start}～{shiftRules.part2End})
                 </div>
               </div>
             </div>
@@ -554,7 +590,7 @@ const ShiftCalendar: FC = () => {
             </p>
             
             <div className="grid grid-cols-2 gap-3">
-              {['早番', '遅番', 'パート①', 'パート②'].map(shiftType => (
+              {['早番', '遅番'].map(shiftType => (
                 <button
                   key={shiftType}
                   onClick={() => handleShiftTypeSelect(shiftType)}
@@ -562,12 +598,30 @@ const ShiftCalendar: FC = () => {
                 >
                   <div className="font-semibold">{shiftType}</div>
                   <div className="text-xs mt-1">
-                    {shiftType === '早番' ? '08:30-17:30' :
-                     shiftType === '遅番' ? '09:30-18:30' :
-                     shiftType === 'パート①' ? '08:30-13:00' : '13:00-18:30'}
+                    {shiftType === '早番' ? '08:30-17:30' : '09:30-18:30'}
                   </div>
                 </button>
               ))}
+              
+              {/* パート①の2つの選択肢 */}
+              {shiftRules.part1EndOptions.map(endTime => (
+                <button
+                  key={`パート①-${endTime}`}
+                  onClick={() => handleShiftTypeSelectWithTime('パート①', endTime)}
+                  className={`p-4 rounded-xl border-2 hover:shadow-md transition-all duration-200 ${getShiftColor('パート①')}`}
+                >
+                  <div className="font-semibold">パート①</div>
+                  <div className="text-xs mt-1">08:30-{endTime}</div>
+                </button>
+              ))}
+              
+              <button
+                onClick={() => handleShiftTypeSelect('パート②')}
+                className={`p-4 rounded-xl border-2 hover:shadow-md transition-all duration-200 ${getShiftColor('パート②')}`}
+              >
+                <div className="font-semibold">パート②</div>
+                <div className="text-xs mt-1">{shiftRules.part2Start}-{shiftRules.part2End}</div>
+              </button>
             </div>
             
             <button
