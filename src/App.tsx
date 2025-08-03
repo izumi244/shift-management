@@ -5,13 +5,20 @@ import LoginPage from './components/LoginPage'
 // 型定義
 export type Page = 'dataInput' | 'employee' | 'leave' | 'rules' | 'aiGeneration' | 'shiftDisplay'
 
-// コンポーネントのインポート
+// PC版コンポーネントのインポート
 import ProgressBar from './components/ProgressBar'
 import DataInputPage from './components/DataInputPage'
 import EmployeeManagement from './components/EmployeeManagement'
 import LeaveManagement from './components/LeaveManagement'
 import RulesSettings from './components/RulesSettings'
 import ShiftCalendar from './components/ShiftCalendar'
+
+// モバイル版コンポーネントのインポート
+import DataInputPageMobile from './components/DataInputPageMobile'
+import EmployeeManagementMobile from './components/EmployeeManagementMobile'
+import LeaveManagementMobile from './components/LeaveManagementMobile'
+import RulesSettingsMobile from './components/RulesSettingsMobile'
+import ShiftCalendarMobile from './components/ShiftCalendarMobile'
 
 // データ収集関数
 const collectDataForAI = (
@@ -39,12 +46,50 @@ const collectDataForAI = (
   }
 }
 
+// スマホ版タブバーコンポーネント（仮）
+const MobileTabBar = ({ currentPage, onNavigate }: { 
+  currentPage: Page, 
+  onNavigate: (page: Page) => void 
+}) => {
+  const menuItems = [
+    { id: 'dataInput' as Page, icon: '📊', label: 'ダッシュボード' },
+    { id: 'employee' as Page, icon: '👥', label: '従業員管理' },
+    { id: 'leave' as Page, icon: '📅', label: '希望休管理' },
+    { id: 'rules' as Page, icon: '⚙️', label: '制約設定' },
+    { id: 'shiftDisplay' as Page, icon: '📋', label: 'シフト表示' }
+  ]
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+      <div className="flex justify-around items-center h-20 px-2">
+        {menuItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => onNavigate(item.id)}
+            className={`flex flex-col items-center justify-center flex-1 py-2 px-1 transition-all duration-200 ${
+              currentPage === item.id
+                ? 'text-blue-600 scale-105'
+                : 'text-gray-600'
+            }`}
+          >
+            <span className="text-xl mb-1">{item.icon}</span>
+            <span className="text-xs font-medium text-center leading-tight">
+              {item.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // メインアプリケーションコンポーネント（ログイン後の画面）
 const MainApp = () => {
   const [currentPage, setCurrentPage] = useState<Page>('dataInput')
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   
   // 各種データの状態管理
   const [employees, setEmployees] = useState([])
@@ -55,6 +100,18 @@ const MainApp = () => {
   // 認証情報を取得
   const { user, logout, hasPermission } = useAuth()
   const canEdit = hasPermission('edit')
+
+  // レスポンシブ判定
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 640)
+    }
+    
+    checkIsMobile()
+    window.addEventListener('resize', checkIsMobile)
+    
+    return () => window.removeEventListener('resize', checkIsMobile)
+  }, [])
 
   // PDF用のモックデータ
   const currentMonth = '2025-08'
@@ -185,7 +242,111 @@ const MainApp = () => {
   const pdfWeeks = generatePDFWeeks()
   const today = new Date().toISOString().split('T')[0]
 
-  // PC版レイアウト（元のまま）
+  // スマホ版レイアウト
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-100 to-blue-200 pb-20">
+        {/* スマホ版上部ヘッダー */}
+        <div className="bg-white shadow-lg p-4">
+          <div className="flex justify-between items-center">
+            {/* 左側：ユーザー情報 */}
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm">
+                  {user?.role === 'admin' ? '👑' : '👤'}
+                </span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {user?.username}
+                </p>
+                <button
+                  onClick={logout}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  ログアウト
+                </button>
+              </div>
+            </div>
+
+            {/* 右側：月送り・編集ボタン（シフトページのみ） */}
+            {currentPage === 'shiftDisplay' && (
+              <div className="flex items-center space-x-2">
+                <button className="p-2 text-gray-600 hover:text-blue-600">
+                  ←
+                </button>
+                <span className="text-sm font-medium">2025年08月</span>
+                <button className="p-2 text-gray-600 hover:text-blue-600">
+                  →
+                </button>
+                <button className="ml-2 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg">
+                  編集
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* メインコンテンツ */}
+        <div className="p-4">
+          {/* プログレスバー（ダッシュボード以外で表示） */}
+          {currentPage !== 'dataInput' && (
+            <div className="mb-4">
+              <ProgressBar currentStep={currentStep} />
+            </div>
+          )}
+
+          {/* ページコンテンツ（モバイル版コンポーネント使用） */}
+          <div className="bg-white rounded-2xl shadow-lg p-4">
+            {currentPage === 'dataInput' && (
+              <DataInputPageMobile onNavigate={navigateToPage} />
+            )}
+
+            {currentPage === 'employee' && (
+              <EmployeeManagementMobile onNavigate={navigateToPage} />
+            )}
+
+            {currentPage === 'leave' && (
+              <LeaveManagementMobile onNavigate={navigateToPage} />
+            )}
+
+            {currentPage === 'rules' && (
+              <RulesSettingsMobile onNavigate={navigateToPage} />
+            )}
+
+            {currentPage === 'aiGeneration' && (
+              <div className="text-center py-20">
+                <div className="text-6xl mb-6 animate-bounce">🤖</div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                  AIがシフトを生成中...
+                </h2>
+                <p className="text-gray-600 mb-8">
+                  制約条件を考慮して最適なシフトを作成しています
+                </p>
+                <div className="w-full max-w-md mx-auto">
+                  <div className="bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full animate-pulse"
+                      style={{ width: '70%' }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentPage === 'shiftDisplay' && (
+              <ShiftCalendarMobile />
+            )}
+          </div>
+        </div>
+
+        {/* スマホ版下部タブバー */}
+        <MobileTabBar currentPage={currentPage} onNavigate={navigateToPage} />
+      </div>
+    )
+  }
+
+  // PC版レイアウト（既存のまま）
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-100 to-blue-200 flex">
       {/* サイドバー */}
