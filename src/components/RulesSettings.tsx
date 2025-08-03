@@ -163,17 +163,23 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
                   activeTab === tab.id
-                    ? `bg-gradient-to-r from-${tab.color}-500 to-${tab.color}-600 text-white shadow-md`
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                    ? `${
+                        tab.color === 'blue' ? 'bg-blue-100 text-blue-700' :
+                        tab.color === 'orange' ? 'bg-orange-100 text-orange-700' :
+                        tab.color === 'purple' ? 'bg-purple-100 text-purple-700' :
+                        'bg-green-100 text-green-700'
+                      } shadow-md`
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
                 }`}
               >
-                <span className="mr-2">{tab.icon}</span>
+                <span className="text-lg mr-2">{tab.icon}</span>
                 {tab.label}
               </button>
             ))}
           </nav>
         </div>
 
+        {/* タブコンテンツ */}
         <div className="p-6">
           {/* 基本ルール */}
           {activeTab === 'basic' && (
@@ -183,150 +189,98 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 診療時間設定 */}
-                <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
-                  <h4 className="font-semibold text-blue-800 mb-4">診療時間</h4>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        開始時間
-                      </label>
-                      <input
-                        type="time"
-                        value={basicRules.clinicStartTime}
-                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, clinicStartTime: e.target.value }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        終了時間（平日・土曜）
-                      </label>
-                      <input
-                        type="time"
-                        value={basicRules.clinicEndTime}
-                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, clinicEndTime: e.target.value }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        水曜日終了時間
-                      </label>
-                      <input
-                        type="time"
-                        value={basicRules.wednesdayEndTime}
-                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, wednesdayEndTime: e.target.value }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        土曜日終了時間
-                      </label>
-                      <input
-                        type="time"
-                        value={basicRules.saturdayEndTime}
-                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, saturdayEndTime: e.target.value }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    診療開始時間
+                  </label>
+                  <input
+                    type="time"
+                    value={basicRules.clinicStartTime}
+                    onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, clinicStartTime: e.target.value }))}
+                    disabled={!canEdit}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                      canEdit 
+                        ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                        : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                    }`}
+                  />
                 </div>
 
-                {/* 診療曜日設定 */}
-                <div className="bg-green-50 p-6 rounded-xl border border-green-200">
-                  <h4 className="font-semibold text-green-800 mb-4">診療曜日</h4>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    {['月', '火', '水', '木', '金', '土', '日'].map(day => (
-                      <label key={day} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={basicRules.clinicDays.includes(day)}
-                          onChange={() => handleDayToggle(day)}
-                          disabled={!canEdit}
-                          className={`mr-3 h-5 w-5 rounded focus:ring-green-500 ${
-                            canEdit 
-                              ? 'text-green-600 cursor-pointer' 
-                              : 'text-gray-400 cursor-not-allowed'
-                          }`}
-                        />
-                        <span className={`${canEdit ? 'text-gray-700' : 'text-gray-500'}`}>
-                          {day}曜日
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    診療終了時間
+                  </label>
+                  <input
+                    type="time"
+                    value={basicRules.clinicEndTime}
+                    onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, clinicEndTime: e.target.value }))}
+                    disabled={!canEdit}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                      canEdit 
+                        ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                        : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  診療日（複数選択可能）
+                </label>
+                <div className="grid grid-cols-7 gap-2">
+                  {['月', '火', '水', '木', '金', '土', '日'].map((day) => (
+                    <button
+                      key={day}
+                      onClick={() => handleDayToggle(day)}
+                      disabled={!canEdit}
+                      className={`p-3 rounded-lg font-medium transition-colors ${
+                        basicRules.clinicDays.includes(day)
+                          ? 'bg-blue-500 text-white'
+                          : canEdit 
+                            ? 'bg-gray-200 text-gray-700 hover:bg-blue-100'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    水曜日終了時間
+                  </label>
+                  <input
+                    type="time"
+                    value={basicRules.wednesdayEndTime}
+                    onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, wednesdayEndTime: e.target.value }))}
+                    disabled={!canEdit}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                      canEdit 
+                        ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                        : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                    }`}
+                  />
                 </div>
 
-                {/* 常勤勤務ルール */}
-                <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
-                  <h4 className="font-semibold text-yellow-800 mb-4">常勤勤務ルール</h4>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        週勤務日数（常勤）
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="7"
-                        value={basicRules.fullTimeMinDays}
-                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, fullTimeMinDays: parseInt(e.target.value) }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        最大連続勤務日数（常勤）
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={basicRules.fullTimeMaxDays}
-                        onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, fullTimeMaxDays: parseInt(e.target.value) }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    土曜日終了時間
+                  </label>
+                  <input
+                    type="time"
+                    value={basicRules.saturdayEndTime}
+                    onChange={(e) => canEdit && setBasicRules(prev => ({ ...prev, saturdayEndTime: e.target.value }))}
+                    disabled={!canEdit}
+                    className={`w-full p-3 border rounded-lg focus:ring-2 ${
+                      canEdit 
+                        ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                        : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                    }`}
+                  />
                 </div>
               </div>
             </div>
@@ -336,305 +290,276 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
           {activeTab === 'staffing' && (
             <div className="space-y-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                👥 曜日別必要人員数
+                👥 人員配置設定
               </h3>
 
-              <div className="space-y-8">
-                {/* 平日設定 */}
-                <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
-                  <h4 className="font-semibold text-blue-800 mb-4 text-lg">平日設定</h4>
-                  <p className="text-sm text-gray-600 mb-4">月・火・木・金曜日</p>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        早番
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.weekday.morning}
-                        onChange={(e) => canEdit && setStaffingRules(prev => ({
-                          ...prev,
-                          weekday: { ...prev.weekday, morning: parseInt(e.target.value) }
-                        }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        遅番
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.weekday.evening}
-                        onChange={(e) => canEdit && setStaffingRules(prev => ({
-                          ...prev,
-                          weekday: { ...prev.weekday, evening: parseInt(e.target.value) }
-                        }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-green-500 focus:border-green-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        パート①
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.weekday.part1}
-                        onChange={(e) => canEdit && setStaffingRules(prev => ({
-                          ...prev,
-                          weekday: { ...prev.weekday, part1: parseInt(e.target.value) }
-                        }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-orange-500 focus:border-orange-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        パート②
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.weekday.part2}
-                        onChange={(e) => canEdit && setStaffingRules(prev => ({
-                          ...prev,
-                          weekday: { ...prev.weekday, part2: parseInt(e.target.value) }
-                        }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-red-500 focus:border-red-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
-                    </div>
+              {/* 平日 */}
+              <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
+                <h4 className="font-semibold text-blue-800 mb-4">平日（月・火・木・金）</h4>
+                
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      早番
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={staffingRules.weekday.morning}
+                      onChange={(e) => canEdit && setStaffingRules(prev => ({
+                        ...prev,
+                        weekday: { ...prev.weekday, morning: parseInt(e.target.value) }
+                      }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">人</p>
                   </div>
 
-                  <div className="mt-4 p-3 bg-green-100 rounded-lg">
-                    <p className="text-sm font-medium text-green-800">
-                      合計: {staffingRules.weekday.morning + staffingRules.weekday.evening + staffingRules.weekday.part1 + staffingRules.weekday.part2}人
-                    </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      遅番
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={staffingRules.weekday.evening}
+                      onChange={(e) => canEdit && setStaffingRules(prev => ({
+                        ...prev,
+                        weekday: { ...prev.weekday, evening: parseInt(e.target.value) }
+                      }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">人</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      パート①
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={staffingRules.weekday.part1}
+                      onChange={(e) => canEdit && setStaffingRules(prev => ({
+                        ...prev,
+                        weekday: { ...prev.weekday, part1: parseInt(e.target.value) }
+                      }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">人</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      パート②
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={staffingRules.weekday.part2}
+                      onChange={(e) => canEdit && setStaffingRules(prev => ({
+                        ...prev,
+                        weekday: { ...prev.weekday, part2: parseInt(e.target.value) }
+                      }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">人</p>
                   </div>
                 </div>
+              </div>
 
-                {/* 水曜日設定 */}
-                <div className="bg-green-50 p-6 rounded-xl border border-green-200">
-                  <h4 className="font-semibold text-green-800 mb-4 text-lg">水曜日設定</h4>
-                  <p className="text-sm text-gray-600 mb-4">午後診療なし</p>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        早番
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.wednesday.morning}
-                        onChange={(e) => canEdit && setStaffingRules(prev => ({
-                          ...prev,
-                          wednesday: { ...prev.wednesday, morning: parseInt(e.target.value) }
-                        }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        遅番
-                      </label>
-                      <input
-                        type="number"
-                        value={0}
-                        disabled
-                        className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-center font-semibold cursor-not-allowed"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人（午後なし）</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        パート①
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.wednesday.part1}
-                        onChange={(e) => canEdit && setStaffingRules(prev => ({
-                          ...prev,
-                          wednesday: { ...prev.wednesday, part1: parseInt(e.target.value) }
-                        }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-orange-500 focus:border-orange-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        パート②
-                      </label>
-                      <input
-                        type="number"
-                        value={0}
-                        disabled
-                        className="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 text-center font-semibold cursor-not-allowed"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人（午後なし）</p>
-                    </div>
+              {/* 水曜日 */}
+              <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
+                <h4 className="font-semibold text-yellow-800 mb-4">水曜日（午後診療なし）</h4>
+                
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      早番
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={staffingRules.wednesday.morning}
+                      onChange={(e) => canEdit && setStaffingRules(prev => ({
+                        ...prev,
+                        wednesday: { ...prev.wednesday, morning: parseInt(e.target.value) }
+                      }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">人</p>
                   </div>
 
-                  <div className="mt-4 p-3 bg-green-100 rounded-lg">
-                    <p className="text-sm font-medium text-green-800">
-                      合計: {staffingRules.wednesday.morning + staffingRules.wednesday.evening + staffingRules.wednesday.part1 + staffingRules.wednesday.part2}人
-                    </p>
+                  <div className="text-center">
+                    <label className="block text-sm font-medium text-gray-500 mb-2">
+                      遅番
+                    </label>
+                    <div className="w-full p-3 border rounded-lg bg-gray-100 text-gray-500 text-center font-semibold">
+                      なし
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">午後診療なし</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      パート①
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={staffingRules.wednesday.part1}
+                      onChange={(e) => canEdit && setStaffingRules(prev => ({
+                        ...prev,
+                        wednesday: { ...prev.wednesday, part1: parseInt(e.target.value) }
+                      }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">人</p>
+                  </div>
+
+                  <div className="text-center">
+                    <label className="block text-sm font-medium text-gray-500 mb-2">
+                      パート②
+                    </label>
+                    <div className="w-full p-3 border rounded-lg bg-gray-100 text-gray-500 text-center font-semibold">
+                      なし
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">午後診療なし</p>
                   </div>
                 </div>
+              </div>
 
-                {/* 土曜日設定 */}
-                <div className="bg-purple-50 p-6 rounded-xl border border-purple-200">
-                  <h4 className="font-semibold text-purple-800 mb-4 text-lg">土曜日設定</h4>
-                  <p className="text-sm text-gray-600 mb-4">理想的な人員配置</p>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        早番
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.saturday.morning}
-                        onChange={(e) => canEdit && setStaffingRules(prev => ({
-                          ...prev,
-                          saturday: { ...prev.saturday, morning: parseInt(e.target.value) }
-                        }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        遅番
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.saturday.evening}
-                        onChange={(e) => canEdit && setStaffingRules(prev => ({
-                          ...prev,
-                          saturday: { ...prev.saturday, evening: parseInt(e.target.value) }
-                        }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-green-500 focus:border-green-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        パート①
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.saturday.part1}
-                        onChange={(e) => canEdit && setStaffingRules(prev => ({
-                          ...prev,
-                          saturday: { ...prev.saturday, part1: parseInt(e.target.value) }
-                        }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-orange-500 focus:border-orange-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        パート②
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={staffingRules.saturday.part2}
-                        onChange={(e) => canEdit && setStaffingRules(prev => ({
-                          ...prev,
-                          saturday: { ...prev.saturday, part2: parseInt(e.target.value) }
-                        }))}
-                        disabled={!canEdit}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
-                          canEdit 
-                            ? 'border-gray-300 focus:ring-red-500 focus:border-red-500 bg-white' 
-                            : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">人</p>
-                    </div>
+              {/* 土曜日 */}
+              <div className="bg-green-50 p-6 rounded-xl border border-green-200">
+                <h4 className="font-semibold text-green-800 mb-4">土曜日</h4>
+                
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      早番
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={staffingRules.saturday.morning}
+                      onChange={(e) => canEdit && setStaffingRules(prev => ({
+                        ...prev,
+                        saturday: { ...prev.saturday, morning: parseInt(e.target.value) }
+                      }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-green-500 focus:border-green-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">人</p>
                   </div>
 
-                  <div className="mt-4 p-3 bg-green-100 rounded-lg">
-                    <p className="text-sm font-medium text-green-800">
-                      合計: {staffingRules.saturday.morning + staffingRules.saturday.evening + staffingRules.saturday.part1 + staffingRules.saturday.part2}人
-                    </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      遅番
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={staffingRules.saturday.evening}
+                      onChange={(e) => canEdit && setStaffingRules(prev => ({
+                        ...prev,
+                        saturday: { ...prev.saturday, evening: parseInt(e.target.value) }
+                      }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-green-500 focus:border-green-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">人</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      パート①
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={staffingRules.saturday.part1}
+                      onChange={(e) => canEdit && setStaffingRules(prev => ({
+                        ...prev,
+                        saturday: { ...prev.saturday, part1: parseInt(e.target.value) }
+                      }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-green-500 focus:border-green-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">人</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      パート②
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="10"
+                      value={staffingRules.saturday.part2}
+                      onChange={(e) => canEdit && setStaffingRules(prev => ({
+                        ...prev,
+                        saturday: { ...prev.saturday, part2: parseInt(e.target.value) }
+                      }))}
+                      disabled={!canEdit}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 text-center font-semibold ${
+                        canEdit 
+                          ? 'border-gray-300 focus:ring-green-500 focus:border-green-500 bg-white' 
+                          : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">人</p>
                   </div>
                 </div>
               </div>
@@ -645,11 +570,11 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
           {activeTab === 'shift' && (
             <div className="space-y-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                ⏰ シフトパターン設定
+                ⏰ シフト設定
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 早番 */}
+                {/* 早番設定 */}
                 <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
                   <h4 className="font-semibold text-blue-800 mb-4">早番</h4>
                   
@@ -690,7 +615,7 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                {/* 遅番 */}
+                {/* 遅番設定 */}
                 <div className="bg-green-50 p-6 rounded-xl border border-green-200">
                   <h4 className="font-semibold text-green-800 mb-4">遅番</h4>
                   
@@ -731,9 +656,9 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                {/* パート① */}
-                <div className="bg-orange-50 p-6 rounded-xl border border-orange-200">
-                  <h4 className="font-semibold text-orange-800 mb-4">パート①</h4>
+                {/* パート①設定 */}
+                <div className="bg-yellow-50 p-6 rounded-xl border border-yellow-200">
+                  <h4 className="font-semibold text-yellow-800 mb-4">パート①</h4>
                   
                   <div className="space-y-4">
                     <div>
@@ -747,7 +672,7 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         disabled={!canEdit}
                         className={`w-full p-3 border rounded-lg focus:ring-2 ${
                           canEdit 
-                            ? 'border-gray-300 focus:ring-orange-500 focus:border-orange-500 bg-white' 
+                            ? 'border-gray-300 focus:ring-yellow-500 focus:border-yellow-500 bg-white' 
                             : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
                         }`}
                       />
@@ -755,25 +680,25 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        終了時間選択肢
+                        終了時間オプション
                       </label>
                       <div className="space-y-2">
-                        {shiftRules.part1EndOptions.map(time => (
-                          <label key={time} className="flex items-center space-x-2">
+                        {shiftRules.part1EndOptions.map((time) => (
+                          <label key={time} className="flex items-center space-x-3">
                             <input
                               type="radio"
-                              name="part1End"
+                              name="part1EndTime"
                               value={time}
                               checked={shiftRules.part1DefaultEnd === time}
                               onChange={(e) => canEdit && setShiftRules(prev => ({ ...prev, part1DefaultEnd: e.target.value }))}
                               disabled={!canEdit}
                               className={`w-4 h-4 ${
                                 canEdit 
-                                  ? 'text-orange-600 cursor-pointer' 
+                                  ? 'text-yellow-600 cursor-pointer' 
                                   : 'text-gray-400 cursor-not-allowed'
                               }`}
                             />
-                            <span className={`text-sm ${canEdit ? 'text-gray-700' : 'text-gray-500'}`}>
+                            <span className={`text-sm font-medium ${canEdit ? 'text-gray-700' : 'text-gray-500'}`}>
                               {time}
                             </span>
                           </label>
@@ -783,9 +708,9 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                {/* パート② */}
-                <div className="bg-red-50 p-6 rounded-xl border border-red-200">
-                  <h4 className="font-semibold text-red-800 mb-4">パート②</h4>
+                {/* パート②設定 */}
+                <div className="bg-purple-50 p-6 rounded-xl border border-purple-200">
+                  <h4 className="font-semibold text-purple-800 mb-4">パート②</h4>
                   
                   <div className="space-y-4">
                     <div>
@@ -799,7 +724,7 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         disabled={!canEdit}
                         className={`w-full p-3 border rounded-lg focus:ring-2 ${
                           canEdit 
-                            ? 'border-gray-300 focus:ring-red-500 focus:border-red-500 bg-white' 
+                            ? 'border-gray-300 focus:ring-purple-500 focus:border-purple-500 bg-white' 
                             : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
                         }`}
                       />
@@ -816,7 +741,7 @@ const RulesSettings: FC<RulesSettingsProps> = ({ onNavigate }) => {
                         disabled={!canEdit}
                         className={`w-full p-3 border rounded-lg focus:ring-2 ${
                           canEdit 
-                            ? 'border-gray-300 focus:ring-red-500 focus:border-red-500 bg-white' 
+                            ? 'border-gray-300 focus:ring-purple-500 focus:border-purple-500 bg-white' 
                             : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
                         }`}
                       />

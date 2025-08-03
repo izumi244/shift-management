@@ -95,69 +95,53 @@ const LeaveManagement: FC<LeaveManagementProps> = ({ onNavigate }) => {
     // 前月の日付
     const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
     const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear
-    const prevMonthLastDay = new Date(prevYear, prevMonth, 0).getDate()
+    const prevLastDay = new Date(prevYear, prevMonth, 0).getDate()
     
-    for (let i = startDayOfWeek - 1; i >= 0; i--) {
-      const day = prevMonthLastDay - i
+    // 空白埋め（前月）
+    for (let i = startDayOfWeek; i > 0; i--) {
       days.push({
-        day,
+        day: prevLastDay - i + 1,
         isCurrentMonth: false,
-        date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        isNextMonth: false,
+        date: `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(prevLastDay - i + 1).padStart(2, '0')}`
       })
     }
     
-    // 当月の日付
+    // 当月
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       days.push({
         day,
         isCurrentMonth: true,
-        date
+        isNextMonth: false,
+        date: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       })
     }
     
-    // 来月の日付
-    const totalCells = Math.ceil(days.length / 7) * 7
+    // 空白埋め（次月）
     const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1
     const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear
-    
+    const totalCells = Math.ceil(days.length / 7) * 7
     for (let day = 1; days.length < totalCells; day++) {
-      const date = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       days.push({
         day,
         isCurrentMonth: false,
-        date
+        isNextMonth: true,
+        date: `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       })
     }
     
     return days
   }
 
-  const handleDateClick = (date: string, isCurrentMonth: boolean) => {
-    if (!isCurrentMonth) return
-    
-    const existingLeaves = leaveRequests.filter(leave => leave.date === date)
-    if (existingLeaves.length > 0) {
-      // 既存の希望休がある場合は編集
-      setEditingLeave(existingLeaves[0])
-      setFormData({
-        staffId: existingLeaves[0].staffId,
-        type: existingLeaves[0].type,
-        date: existingLeaves[0].date,
-        reason: existingLeaves[0].reason
-      })
-    } else {
-      // 新規申請
-      setEditingLeave(null)
-      setFormData({
-        staffId: '',
-        type: '',
-        date,
-        reason: ''
-      })
-    }
-    
-    setSelectedDate(date)
+  const handleDateClick = (dateStr: string, isApplicationButton: boolean = false) => {
+    setSelectedDate(dateStr)
+    setFormData({
+      staffId: '',
+      type: '',
+      date: dateStr,
+      reason: ''
+    })
+    setEditingLeave(null)
     setShowModal(true)
   }
 
@@ -170,18 +154,6 @@ const LeaveManagement: FC<LeaveManagementProps> = ({ onNavigate }) => {
     const staff = employees.find(emp => emp.id === formData.staffId)
     if (!staff) {
       alert('従業員が見つかりません')
-      return
-    }
-
-    // 重複チェック（編集時は除く）
-    const existingLeave = leaveRequests.find(leave => 
-      leave.staffId === formData.staffId && 
-      leave.date === formData.date && 
-      leave.id !== editingLeave?.id
-    )
-    
-    if (existingLeave) {
-      alert('同じ従業員の同じ日付に既に申請があります')
       return
     }
 
@@ -283,12 +255,7 @@ const LeaveManagement: FC<LeaveManagementProps> = ({ onNavigate }) => {
         </h2>
         <button
           onClick={() => onNavigate('dataInput')}
-          className="
-            inline-flex items-center px-4 py-2 text-sm font-medium
-            bg-gray-100 hover:bg-gray-200 text-gray-700
-            rounded-lg transition-colors duration-300
-            border border-gray-300
-          "
+          className="inline-flex items-center px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-300 border border-gray-300"
         >
           ← 戻る
         </button>
@@ -298,13 +265,7 @@ const LeaveManagement: FC<LeaveManagementProps> = ({ onNavigate }) => {
       <div className="mb-8">
         <button 
           onClick={() => handleDateClick(new Date().toISOString().split('T')[0], true)}
-          className="
-            inline-flex items-center px-6 py-3 text-sm font-bold
-            bg-gradient-to-r from-blue-500 to-blue-600
-            hover:from-blue-600 hover:to-blue-700
-            text-white rounded-xl shadow-lg hover:shadow-xl
-            transform hover:scale-105 transition-all duration-300
-          "
+          className="inline-flex items-center px-6 py-3 text-sm font-bold bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
         >
           <span className="mr-2">➕</span>
           希望休を申請
@@ -324,11 +285,7 @@ const LeaveManagement: FC<LeaveManagementProps> = ({ onNavigate }) => {
               setCurrentYear(year)
               setCurrentMonth(month)
             }}
-            className="
-              w-full px-4 py-3 rounded-xl border-2 border-gray-200
-              focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200
-              transition-all duration-300 text-gray-700 bg-white
-            "
+            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-300 text-gray-700 bg-white"
           >
             <option value="2025-07">2025年7月</option>
             <option value="2025-08">2025年8月</option>
@@ -350,66 +307,76 @@ const LeaveManagement: FC<LeaveManagementProps> = ({ onNavigate }) => {
       {/* カレンダー */}
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
         <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 text-center">
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between">
             <button 
               onClick={() => changeMonth(-1)}
-              className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              className="p-2 text-xl hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
             >
               ←
             </button>
-            <h3 className="text-xl font-bold">{currentYear}年{currentMonth}月</h3>
+            <h3 className="text-xl font-bold">
+              {currentYear}年{currentMonth}月
+            </h3>
             <button 
               onClick={() => changeMonth(1)}
-              className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              className="p-2 text-xl hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
             >
               →
             </button>
           </div>
         </div>
-        
-        <div className="p-6">
-          <div className="grid grid-cols-7 gap-2 mb-4">
-            {['日', '月', '火', '水', '木', '金', '土'].map((day) => (
-              <div key={day} className="text-center py-2 font-semibold text-gray-600 text-sm">
+
+        <div className="p-4">
+          {/* 曜日ヘッダー */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['日', '月', '火', '水', '木', '金', '土'].map((day, index) => (
+              <div 
+                key={day} 
+                className={`text-sm p-3 text-center font-semibold ${
+                  index === 0 ? 'text-red-600' : index === 6 ? 'text-blue-600' : 'text-gray-600'
+                }`}
+              >
                 {day}
               </div>
             ))}
           </div>
-          
-          <div className="grid grid-cols-7 gap-2">
-            {calendarDays.map((calDay, index) => {
-              const dayLeaves = leaveRequests.filter(leave => leave.date === calDay.date)
-              const isWeekend = index % 7 === 0 || index % 7 === 6
-              const isToday = calDay.date === new Date().toISOString().split('T')[0] && calDay.isCurrentMonth
+
+          {/* カレンダー本体 */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((dayInfo, index) => {
+              const dayLeaves = leaveRequests.filter(leave => leave.date === dayInfo.date)
               
               return (
                 <div
-                  key={`${calDay.date}-${index}`}
-                  onClick={() => handleDateClick(calDay.date, calDay.isCurrentMonth)}
-                  className={`
-                    min-h-[80px] p-2 rounded-lg border cursor-pointer
-                    transition-all duration-300 hover:bg-gray-50
-                    ${!calDay.isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'}
-                    ${isWeekend && calDay.isCurrentMonth ? 'bg-gray-50' : ''}
-                    ${isToday ? 'bg-orange-50 border-orange-200 ring-2 ring-orange-200' : 'border-gray-200'}
-                    ${calDay.isCurrentMonth ? 'hover:shadow-md' : 'cursor-not-allowed'}
-                  `}
+                  key={index}
+                  onClick={() => dayInfo.isCurrentMonth && handleDateClick(dayInfo.date)}
+                  className={`min-h-[100px] p-2 border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
+                    !dayInfo.isCurrentMonth ? 'bg-gray-100' : 'bg-white'
+                  }`}
                 >
-                  <div className="text-sm font-medium">{calDay.day}</div>
-                  <div className="mt-1 space-y-1">
-                    {dayLeaves.map((leave) => (
-                      <div
-                        key={leave.id}
-                        className={`
-                          text-xs px-1 rounded text-center
-                          ${getLeaveTypeColor(leave.type)}
-                        `}
-                        title={`${leave.staffName} - ${leave.type}${leave.reason ? ': ' + leave.reason : ''}`}
-                      >
-                        {leave.staffName.length > 4 ? leave.staffName.substring(0, 3) + '...' : leave.staffName}
-                      </div>
-                    ))}
+                  <div className={`text-sm font-medium ${
+                    !dayInfo.isCurrentMonth ? 'text-gray-400' : 'text-gray-800'
+                  }`}>
+                    {dayInfo.day}
                   </div>
+                  
+                  {dayLeaves.length > 0 && (
+                    <div className="mt-1 space-y-1">
+                      {dayLeaves.slice(0, 2).map((leave, idx) => (
+                        <div
+                          key={idx}
+                          className={`text-xs px-2 py-1 rounded ${getLeaveTypeColor(leave.type)}`}
+                        >
+                          {`${leave.staffName}:${leave.type}`}
+                        </div>
+                      ))}
+                      {dayLeaves.length > 2 && (
+                        <div className="text-xs text-gray-500">
+                          +{dayLeaves.length - 2}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -417,78 +384,70 @@ const LeaveManagement: FC<LeaveManagementProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* 凡例 */}
-      <div className="flex flex-wrap gap-4 justify-center mb-8">
-        {['希望休', '有休', '忌引', '病欠', 'その他'].map((type) => (
-          <div key={type} className="flex items-center gap-2">
-            <div className={`w-4 h-4 rounded ${getLeaveTypeColor(type)}`}></div>
-            <span className="text-sm text-gray-600">{type}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* 申請済み希望休一覧 */}
+      {/* 今月の申請一覧 */}
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b">
-          <h3 className="text-lg font-bold text-gray-800">申請済み希望休一覧</h3>
+        <div className="bg-gray-50 p-6 border-b">
+          <h3 className="text-lg font-bold text-gray-800">
+            {currentYear}年{currentMonth}月の申請一覧
+          </h3>
         </div>
         
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">従業員</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">日付</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">曜日</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">種類</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">理由</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">申請日</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">操作</th>
+                <th className="px-6 py-3 text-sm text-left font-semibold text-gray-600">従業員</th>
+                <th className="px-6 py-3 text-sm text-left font-semibold text-gray-600">日付</th>
+                <th className="px-6 py-3 text-sm text-left font-semibold text-gray-600">種類</th>
+                <th className="px-6 py-3 text-sm text-left font-semibold text-gray-600">理由</th>
+                <th className="px-6 py-3 text-sm text-left font-semibold text-gray-600">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {currentMonthLeaves.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((leave) => {
-                const date = new Date(leave.date)
+              {currentMonthLeaves.map((leave) => {
+                const dayOfWeek = new Date(leave.date).getDay()
                 const dayNames = ['日', '月', '火', '水', '木', '金', '土']
-                const dayOfWeek = dayNames[date.getDay()]
                 
                 return (
-                  <tr key={leave.id} className="hover:bg-gray-50 transition-colors duration-200">
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-semibold text-gray-900">{leave.staffName}</div>
-                      <div className="text-sm text-gray-500">({leave.staffId})</div>
+                  <tr key={leave.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {leave.staffName}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{leave.date}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{dayOfWeek}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {leave.date} ({dayNames[dayOfWeek]})
+                    </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getLeaveTypeBadgeColor(leave.type)}`}>
+                      <span className={`text-sm px-3 py-1 rounded-full ${getLeaveTypeBadgeColor(leave.type)}`}>
                         {leave.type}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{leave.reason || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{leave.appliedDate}</td>
-                    <td className="px-6 py-4 text-sm space-x-2">
-                      <button 
-                        onClick={() => {
-                          setEditingLeave(leave)
-                          setFormData({
-                            staffId: leave.staffId,
-                            type: leave.type,
-                            date: leave.date,
-                            reason: leave.reason
-                          })
-                          setShowModal(true)
-                        }}
-                        className="text-indigo-600 hover:text-indigo-900 font-medium transition-colors"
-                      >
-                        編集
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteLeave(leave.id)}
-                        className="text-red-600 hover:text-red-900 font-medium transition-colors"
-                      >
-                        削除
-                      </button>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {leave.reason || '-'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => {
+                            setEditingLeave(leave)
+                            setFormData({
+                              staffId: leave.staffId,
+                              type: leave.type,
+                              date: leave.date,
+                              reason: leave.reason
+                            })
+                            setShowModal(true)
+                          }}
+                          className="text-indigo-600 hover:text-indigo-900 text-sm font-medium transition-colors"
+                        >
+                          編集
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteLeave(leave.id)}
+                          className="text-red-600 hover:text-red-900 text-sm font-medium transition-colors"
+                        >
+                          削除
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )

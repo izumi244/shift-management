@@ -57,7 +57,7 @@ const DataInputPage: FC<DataInputPageProps> = ({ onNavigate, onStartGeneration }
   const handleAIGeneration = () => {
     // 権限チェック
     if (!canEdit) {
-      alert('シフト生成の権限がありません（管理者のみ実行可能）')
+      alert('シフト生成権限がありません（管理者のみ実行可能）')
       return
     }
 
@@ -65,98 +65,94 @@ const DataInputPage: FC<DataInputPageProps> = ({ onNavigate, onStartGeneration }
       alert('対象月を選択してください')
       return
     }
+
     onStartGeneration(targetMonth, specialRequests)
   }
 
   return (
-    <div className="animate-fade-in">
-      <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center">
-        📋 シフト生成設定
-      </h2>
-      
-      {/* 権限不足時の警告 */}
-      {!canEdit && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-6">
-          <div className="flex items-center">
-            <span className="text-lg mr-2">⚠️</span>
-            <span className="font-medium">
-              スタッフ権限のため、一部機能が制限されています。シフト生成は管理者のみ実行可能です。
-            </span>
-          </div>
-        </div>
-      )}
-      
-      {/* 管理カードグリッド */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {managementCards.map((card) => (
-          <div
-            key={card.id}
-            onClick={() => handleCardClick(card.id)}
-            className="group cursor-pointer transform transition-all duration-300 hover:scale-105"
-          >
-            <div className={`
-              relative overflow-hidden rounded-2xl p-8 h-48
-              bg-gradient-to-br ${card.gradientFrom} ${card.gradientTo}
-              ${card.hoverFrom} ${card.hoverTo}
-              shadow-lg hover:shadow-2xl
-              transition-all duration-300
-            `}>
-              {/* グラデーションオーバーレイ */}
-              <div className="absolute inset-0 bg-white/10 group-hover:bg-white/20 transition-all duration-300" />
-              
-              <div className="relative z-10 flex flex-col items-center text-center text-white h-full">
-                <div className="text-5xl mb-4 transform group-hover:scale-110 transition-transform duration-300">
-                  {card.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-3">
-                  {card.title}
-                </h3>
-                <p className="text-white/90 text-sm mb-6 flex-grow">
-                  {card.description}
-                </p>
-                <button className="
-                  bg-white/20 hover:bg-white/30 
-                  px-5 py-2 rounded-lg text-sm font-medium
-                  backdrop-blur-sm border border-white/30
-                  transition-all duration-300
-                  group-hover:bg-white/30 group-hover:scale-105
-                ">
-                  管理画面へ
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+    <div className="space-y-8">
+      {/* ヘッダー */}
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-gray-800 mb-4">
+          🏥 シフト作成ツール
+        </h1>
+        <p className="text-lg text-gray-600">
+          AIを活用して看護師のシフトを効率的に作成
+        </p>
       </div>
 
-      {/* シフト生成設定 */}
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl p-8 border-2 border-dashed border-indigo-200">
-        <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">
-          🚀 シフト生成設定
-        </h3>
+      {/* 管理機能カード */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+          📋 管理機能
+        </h2>
         
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {managementCards.map((card) => (
+            <button
+              key={card.id}
+              onClick={() => handleCardClick(card.id)}
+              className={`
+                group relative overflow-hidden
+                p-8 rounded-2xl
+                bg-gradient-to-br ${card.gradientFrom} ${card.gradientTo}
+                ${card.hoverFrom} ${card.hoverTo}
+                text-white shadow-xl hover:shadow-2xl
+                transform hover:scale-105 transition-all duration-300
+                hover:rotate-1
+              `}
+            >
+              {/* 背景装飾 */}
+              <div className="absolute inset-0 bg-white opacity-10 transform -skew-y-6 group-hover:skew-y-6 transition-transform duration-300"></div>
+              
+              <div className="relative z-10 text-center">
+                <div className="text-4xl mb-4 transform group-hover:scale-110 transition-transform duration-300">
+                  {card.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-2">
+                  {card.title}
+                </h3>
+                <p className="text-sm opacity-90">
+                  {card.description}
+                </p>
+              </div>
+
+              {/* ホバー効果 */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-30 transform -translate-x-full group-hover:translate-x-full transition-all duration-700"></div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* シフト生成セクション */}
+      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-8 rounded-3xl shadow-xl">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">
+            🤖 AIシフト生成
+          </h2>
+          <p className="text-lg text-gray-600">
+            条件を設定してAIにシフトを生成させましょう
+          </p>
+        </div>
+
+        <div className="max-w-2xl mx-auto space-y-6">
           {/* 対象月選択 */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              対象月 *
+            <label className="block text-lg font-semibold text-gray-700 mb-3">
+              📅 対象月を選択
             </label>
             <select
               value={targetMonth}
               onChange={(e) => setTargetMonth(e.target.value)}
-              disabled={!canEdit}
-              className={`
-                w-full px-4 py-3 rounded-xl border-2 
-                transition-all duration-300 text-gray-700
-                bg-white shadow-sm
-                ${canEdit 
-                  ? 'border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200' 
-                  : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                }
-              `}
+              className="
+                w-full px-6 py-4 text-lg
+                border-2 border-gray-300 rounded-xl
+                focus:border-indigo-500 focus:ring-4 focus:ring-indigo-200
+                transition-all duration-300 bg-white
+                hover:border-indigo-400
+              "
             >
-              <option value="">選択してください</option>
-              <option value="2025-07">2025年7月</option>
+              <option value="">月を選択してください</option>
               <option value="2025-08">2025年8月</option>
               <option value="2025-09">2025年9月</option>
               <option value="2025-10">2025年10月</option>
@@ -165,54 +161,90 @@ const DataInputPage: FC<DataInputPageProps> = ({ onNavigate, onStartGeneration }
             </select>
           </div>
 
-          {/* 特別な要望 */}
+          {/* 特別なリクエスト */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              特別な要望（任意）
+            <label className="block text-lg font-semibold text-gray-700 mb-3">
+              💭 特別なリクエスト（任意）
             </label>
             <textarea
               value={specialRequests}
               onChange={(e) => setSpecialRequests(e.target.value)}
-              disabled={!canEdit}
-              placeholder={canEdit ? "特別な配慮が必要な事項があれば入力してください（例：新人の研修、ベテランの指導など）" : "閲覧のみの権限です"}
+              placeholder="例：夏休み期間中は人員を多めに配置してください、お盆期間の配慮が必要です、など"
               rows={4}
-              className={`
-                w-full px-4 py-3 rounded-xl border-2 
-                transition-all duration-300 text-gray-700
-                shadow-sm resize-none
-                ${canEdit 
-                  ? 'border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white' 
-                  : 'border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed'
-                }
-              `}
+              className="
+                w-full px-6 py-4 text-lg
+                border-2 border-gray-300 rounded-xl
+                focus:border-indigo-500 focus:ring-4 focus:ring-indigo-200
+                transition-all duration-300 resize-none bg-white
+                hover:border-indigo-400
+              "
             />
           </div>
 
-          {/* AIシフト生成ボタン */}
+          {/* 生成ボタン */}
           <div className="text-center pt-4">
             <button
               onClick={handleAIGeneration}
-              disabled={!canEdit}
+              disabled={!canEdit || !targetMonth}
               className={`
-                inline-flex items-center px-8 py-4 text-lg font-bold
-                rounded-xl shadow-lg 
+                px-12 py-4 text-xl font-bold rounded-xl
                 transform transition-all duration-300
-                focus:ring-4 focus:ring-indigo-200
-                ${canEdit 
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white hover:shadow-xl hover:scale-105 cursor-pointer'
-                  : 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50'
+                ${
+                  canEdit && targetMonth
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 hover:-translate-y-1'
+                    : 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50'
                 }
               `}
             >
-              <span className="mr-2">{canEdit ? '🚀' : '🔒'}</span>
-              {canEdit ? 'AIシフト生成開始' : 'シフト生成（権限不足）'}
+              {!canEdit ? '🔒 権限不足' : !targetMonth ? '📅 月を選択してください' : '🚀 シフト生成開始'}
             </button>
-            
-            {!canEdit && (
-              <p className="text-sm text-gray-500 mt-2">
-                ※ 管理者権限が必要です
-              </p>
-            )}
+          </div>
+
+          {/* 注意事項 */}
+          <div className="bg-blue-50 border border-blue-200 p-6 rounded-2xl mt-6">
+            <div className="flex items-start">
+              <span className="text-2xl mr-3 mt-1">💡</span>
+              <div>
+                <h4 className="text-lg font-semibold text-blue-800 mb-2">
+                  シフト生成前の確認事項
+                </h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• 従業員情報が最新であることを確認してください</li>
+                  <li>• 希望休の申請が完了していることを確認してください</li>
+                  <li>• 制約条件・ルールが適切に設定されていることを確認してください</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 最近の活動 */}
+      <div className="bg-white p-8 rounded-3xl shadow-xl">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          📈 最近の活動
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-600 mb-2">6</div>
+              <div className="text-sm text-gray-600">登録従業員数</div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-2xl border border-blue-200">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-2">3</div>
+              <div className="text-sm text-gray-600">今月の希望休申請</div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-6 rounded-2xl border border-purple-200">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-purple-600 mb-2">95%</div>
+              <div className="text-sm text-gray-600">制約条件達成率</div>
+            </div>
           </div>
         </div>
       </div>
