@@ -100,19 +100,19 @@ const ShiftCalendarMobile: FC = () => {
     return Math.max(0, totalMinutes / 30) // 30分毎の区切り
   }
 
-  // グリッド位置計算（モバイル版用にサイズ調整）
+  // グリッド位置計算（PC版と完全一致）
   const calculateGridPosition = (startTime: string, endTime: string) => {
     const startIndex = timeToGridIndex(startTime)
     const endIndex = timeToGridIndex(endTime)
     const duration = endIndex - startIndex
     
-    const cellHeight = 120 // モバイル版シフト表示エリア120px
+    const cellHeight = 170 // PC版と同じシフト表示エリア170px
     const totalGrids = 20  // 8:30-18:30 = 10時間 = 20区切り
-    const gridHeight = cellHeight / totalGrids // 1区切り = 6px
+    const gridHeight = cellHeight / totalGrids // 1区切り = 8.5px
     
     return {
-      top: Math.min(startIndex * gridHeight, cellHeight - 30), // 上限調整
-      height: Math.min(Math.max(duration * gridHeight, 25), cellHeight - (startIndex * gridHeight) - 3) // 最小高さ25px、下余白3px
+      top: Math.min(startIndex * gridHeight, cellHeight - 40), // 上限調整
+      height: Math.min(Math.max(duration * gridHeight, 25), cellHeight - (startIndex * gridHeight) - 5) // 最小高さ25px、下余白5px
     }
   }
 
@@ -123,6 +123,19 @@ const ShiftCalendarMobile: FC = () => {
       case 'パート①': return 'bg-orange-100 text-orange-800 border-orange-200'
       case 'パート②': return 'bg-red-100 text-red-800 border-red-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  // 文字数に応じた動的フォントサイズ調整（極小フォント版）
+  const getNameFontSize = (name: string): { className: string, style?: React.CSSProperties } => {
+    if (name.length <= 3) {
+      return { className: 'text-xs', style: { fontSize: '8px' } }
+    } else if (name.length <= 4) {
+      return { className: 'text-xs', style: { fontSize: '7px' } }
+    } else if (name.length <= 5) {
+      return { className: 'text-xs', style: { fontSize: '6px' } }
+    } else {
+      return { className: 'text-xs', style: { fontSize: '5px' } }
     }
   }
 
@@ -290,83 +303,123 @@ const ShiftCalendarMobile: FC = () => {
                 : 'bg-white/20 text-white hover:bg-white/30'
             }`}
           >
-            {isEditing ? '📝 編集中' : '📝 編集'}
+            {isEditing ? '✏️ 編集中' : '📝 編集'}
           </button>
         </div>
       </div>
 
-      {/* カレンダー */}
+      {/* 統計情報（折りたたみ可能） */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        {/* 曜日ヘッダー（6列） */}
-        <div className="grid grid-cols-6 bg-gray-50 border-b border-gray-300">
-          {['月', '火', '水', '木', '金', '土'].map((day, index) => (
-            <div key={day} className={`p-2 text-center font-bold text-sm border-r border-gray-300 ${
-              index === 5 ? 'text-blue-600 border-r-0' : 'text-gray-700'
-            }`}>
-              {day}
+        <button
+          onClick={() => setStatsCollapsed(!statsCollapsed)}
+          className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors duration-200"
+        >
+          <h3 className="text-sm font-bold text-gray-800">📊 シフト統計</h3>
+          <span className="text-gray-500 text-xs">{statsCollapsed ? '▼' : '▲'}</span>
+        </button>
+        
+        {!statsCollapsed && (
+          <div className="px-4 pb-4">
+            {/* シフトタイプ別件数 */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {Object.entries(shiftCounts).map(([type, count]) => (
+                <div key={type} className={`p-2 rounded-lg text-center ${getShiftColor(type)}`}>
+                  <div className="text-xs font-semibold">{type}</div>
+                  <div className="text-lg font-bold">{count}件</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-
-        {/* 週別シフト表 */}
-        <div>
-          {weeks.map((week: (number | null)[], weekIndex: number) => (
-            <div key={weekIndex} className="grid grid-cols-6 border-b border-gray-200 last:border-b-0">
-              {week.map((day: number | null, dayIndex: number) => {
-                if (day === null) {
+            
+            {/* スタッフ別労働時間 */}
+            <div className="bg-gray-50 rounded-lg p-3">
+              <h4 className="text-xs font-bold text-gray-700 mb-2">労働時間</h4>
+              <div className="space-y-1">
+                {Object.entries(mockShift.statistics?.totalHours || {}).map(([staffId, hours]) => {
+                  const staffName = staffList.find(s => s.id === staffId)?.name || staffId
                   return (
-                    <div
-                      key={dayIndex} 
-                      className="bg-gray-100 border-r border-gray-200 last:border-r-0 w-full h-40"
-                    />
+                    <div key={staffId} className="flex justify-between items-center text-xs">
+                      <span className="text-gray-700">{staffName}</span>
+                      <span className="font-semibold text-gray-800">{hours}h</span>
+                    </div>
                   )
-                }
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
-                const dateStr = `${currentMonth}-${String(day).padStart(2, '0')}`
-                const dayShifts = mockShift.assignments.filter((a: ShiftAssignment) => a.date === dateStr)
+      {/* 横スクロールのヒント */}
+      <div className="text-center text-xs text-gray-500 mt-2">
+        ← 左右にスワイプしてください →
+      </div>
+
+      {/* カレンダー本体（横スクロール対応） */}
+      <div className="bg-white rounded-xl shadow-lg overflow-x-auto">
+        <div style={{ width: '1200px' }}>
+          {/* 曜日ヘッダー */}
+          <div className="grid grid-cols-6 bg-gray-100 border-b border-gray-200" style={{ gridTemplateColumns: 'repeat(6, 200px)' }}>
+            {['月', '火', '水', '木', '金', '土'].map((day) => (
+              <div key={day} className="p-2 text-center text-xs font-bold text-gray-700 border-r border-gray-200 last:border-r-0">
+                {day}
+              </div>
+            ))}
+          </div>
+          
+          {/* カレンダーグリッド */}
+          <div className="grid grid-cols-6 bg-white" style={{ gridTemplateColumns: 'repeat(6, 200px)' }}>
+            {weeks.map((week, weekIndex) => (
+              week.map((day, dayIndex) => {
+                const dateStr = day ? `${currentMonth}-${String(day).padStart(2, '0')}` : ''
                 const isToday = dateStr === today
-
+                const dayShifts = mockShift.assignments.filter((a: ShiftAssignment) => a.date === dateStr)
+                
                 return (
                   <div
-                    key={dayIndex}
-                    className={`border-r border-gray-200 last:border-r-0 p-1 transition-all duration-200 overflow-hidden w-full h-40 ${
+                    key={`${weekIndex}-${dayIndex}`}
+                    className={`border-r border-b border-gray-200 p-2 transition-all duration-200 ${
+                      !day ? 'bg-gray-50' : ''
+                    } ${
                       isToday ? 'bg-yellow-50 ring-2 ring-yellow-400' : 'hover:bg-gray-50'
                     } ${isEditing ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+                    style={{ height: '220px' }} // PC版と同じ220px
                     onClick={() => handleCellClick(dateStr)}
                   >
                     {/* 日付表示 */}
-                    <div className={`text-xs font-bold mb-1 ${
+                    <div className={`text-sm font-bold mb-1 ${
                       isToday ? 'text-yellow-800' : 'text-gray-700'
                     }`}>
                       {day}
-                      {isEditing && (
-                        <span className="ml-1 text-xs text-blue-600">✏️</span>
+                      {isEditing && day && (
+                        <span className="ml-1 text-xs text-blue-600">
+                          ✏️
+                        </span>
                       )}
                     </div>
                     
                     {/* シフト表示（PC版と同じ30分グリッドシステム） */}
                     <div 
                       className="relative w-full overflow-hidden"
-                      style={{ height: '120px' }}
+                      style={{ height: '170px' }} // PC版と同じシフト表示エリア170px
                     >
                       {sortShiftsByTime(dayShifts).map((shift: ShiftAssignment, index: number) => {
                         // 30分グリッドシステムで正確な位置計算
                         const { top, height } = calculateGridPosition(shift.startTime, shift.endTime)
                         
-                        // 横位置計算（4人対応、モバイル用に調整）
-                        const leftPosition = index * 22 // 22px間隔（4人対応）
+                        // 横位置計算（PC版と完全一致）
+                        const leftPosition = index * 45 // PC版と同じ45px間隔
                         
                         return (
                           <div
                             key={index}
                             className={`absolute text-xs p-1 rounded border cursor-pointer transition-all duration-200 ${getShiftColor(shift.shiftType)} ${
-                              isEditing ? 'hover:opacity-75' : ''
-                            } flex flex-col justify-center items-center`}
+                              isEditing ? 'hover:opacity-80' : ''
+                            }`}
                             style={{ 
                               top: `${top}px`,
                               left: `${leftPosition}px`,
-                              height: `${Math.max(height, 20)}px`, // 最小20px保証
-                              width: '20px' // 幅を20pxに調整（4人表示用）
+                              height: `${Math.max(height, 25)}px`, // PC版と同じ最小25px
+                              width: '42px' // PC版と同じ42px
                             }}
                             onClick={(e) => {
                               e.stopPropagation()
@@ -374,21 +427,17 @@ const ShiftCalendarMobile: FC = () => {
                                 handleRemoveShift(shift)
                               }
                             }}
-                            title={`${shift.startTime}～${shift.endTime} ${shift.staffName} ${isEditing ? '(タップで削除)' : ''}`}
+                            title={`${shift.startTime}～${shift.endTime} ${shift.staffName} ${isEditing ? '(クリックで削除)' : ''}`}
                           >
-                            <div className="text-center text-[8px] font-medium leading-tight">
-                              {shift.startTime.split(':')[0]}:{shift.startTime.split(':')[1]}
-                            </div>
-                            <div className="text-center text-[8px] font-medium leading-tight">
-                              ～
-                            </div>
-                            <div className="text-center text-[8px] font-medium leading-tight">
-                              {shift.endTime.split(':')[0]}:{shift.endTime.split(':')[1]}
+                            {/* PC版と完全同じ表示フォーマット */}
+                            <div className="text-center text-[10px] font-medium leading-tight">
+                              {shift.startTime}～{shift.endTime}
                             </div>
                             <div 
-                              className="text-center font-bold leading-tight text-[7px] truncate mt-1"
+                              className={`text-center font-bold leading-tight mt-1 truncate ${getNameFontSize(shift.staffName).className}`}
+                              style={getNameFontSize(shift.staffName).style}
                             >
-                              {shift.staffName.length > 3 ? shift.staffName.substring(0, 3) : shift.staffName}
+                              {shift.staffName}
                             </div>
                           </div>
                         )
@@ -396,58 +445,10 @@ const ShiftCalendarMobile: FC = () => {
                     </div>
                   </div>
                 )
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 統計情報（折りたたみ式） */}
-      <div className="bg-white rounded-xl shadow-lg p-4">
-        <button
-          onClick={() => setStatsCollapsed(!statsCollapsed)}
-          className="w-full flex items-center justify-between text-lg font-bold text-gray-800"
-        >
-          📊 統計・凡例
-          <span className="text-xl">{statsCollapsed ? '▼' : '▲'}</span>
-        </button>
-        
-        {!statsCollapsed && (
-          <div className="mt-4 space-y-4">
-            {/* シフト統計 */}
-            <div>
-              <h4 className="font-semibold text-gray-700 mb-2">シフト統計</h4>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(shiftCounts).map(([shiftType, count]: [string, number]) => (
-                  <div key={shiftType} className="flex justify-between items-center">
-                    <span className={`px-2 py-1 rounded text-xs ${getShiftColor(shiftType)}`}>
-                      {shiftType}
-                    </span>
-                    <span className="font-semibold text-gray-700">{count}回</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 総労働時間 */}
-            {mockShift.statistics && (
-              <div>
-                <h4 className="font-semibold text-gray-700 mb-2">総労働時間</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(mockShift.statistics.totalHours).map(([staffId, hours]: [string, number]) => {
-                    const staffName = staffList.find(s => s.id === staffId)?.name || staffId
-                    return (
-                      <div key={staffId} className="flex justify-between items-center">
-                        <span className="text-sm text-gray-700">{staffName}</span>
-                        <span className="font-semibold text-gray-800">{hours}h</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+              })
+            ))}
           </div>
-        )}
+        </div>
       </div>
 
       {/* スタッフ選択モーダル */}
@@ -506,14 +507,18 @@ const ShiftCalendarMobile: FC = () => {
                   <div className="text-xs mt-1">
                     {shiftType === '早番' ? '08:30-17:30' :
                      shiftType === '遅番' ? '09:30-18:30' :
-                     shiftType === 'パート①' ? '08:30-12:30' : '11:00-14:30'}
+                     shiftType === 'パート①' ? '08:30-12:30' :
+                     '11:00-14:30'}
                   </div>
                 </button>
               ))}
             </div>
             
             <button
-              onClick={() => setShiftTypeModalOpen(false)}
+              onClick={() => {
+                setShiftTypeModalOpen(false)
+                setSelectedStaffName('')
+              }}
               className="w-full mt-4 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors duration-200"
             >
               キャンセル
