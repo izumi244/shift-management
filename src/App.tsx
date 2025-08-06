@@ -464,7 +464,7 @@ const MainApp = () => {
       <div className="flex-1 flex flex-col">
         <div className="flex-1 p-6">
           {/* ヘッダー */}
-          <div className="w-full bg-white rounded-3xl shadow-lg p-6 mx-6 mt-6">
+          <div className="w-full bg-white rounded-3xl shadow-lg p-6 mx-0 mt-6">
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 🏥 シフト作成ツール
@@ -478,12 +478,12 @@ const MainApp = () => {
           </div>
 
           {/* プログレスバー */}
-          <div className="w-full bg-white rounded-3xl shadow-lg p-4 mx-6 mt-4">
+          <div className="w-full bg-white rounded-3xl shadow-lg p-4 mx-0 mt-4">
             <ProgressBar currentStep={currentStep} />
           </div>
 
           <div className={currentPage === 'shiftDisplay' ? 
-            'w-full mx-auto' : 'max-w-4xl mx-auto'}>
+            'w-full mx-auto mt-6' : 'max-w-4xl mx-auto mt-6'}>
             <div className="bg-white rounded-3xl shadow-2xl p-8 min-h-[600px]">
               <div className="animate-fade-in">
                 {currentPage === 'dataInput' && (
